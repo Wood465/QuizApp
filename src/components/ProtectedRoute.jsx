@@ -2,8 +2,12 @@
 import { useAuth } from "../context/AuthContext";
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, authReady } = useAuth();
   const location = useLocation();
+
+  if (!authReady) {
+    return <main className="simple-page">Nalagam prijavo...</main>;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;

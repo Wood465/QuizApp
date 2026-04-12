@@ -1,16 +1,26 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 function ProfilePage() {
   const { currentUser, updateProfile } = useAuth();
 
-  const [name, setName] = useState(currentUser.name);
-  const [email, setEmail] = useState(currentUser.email);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const submit = (event) => {
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    setName(currentUser.name || "");
+    setEmail(currentUser.email || "");
+  }, [currentUser]);
+
+  const submit = async (event) => {
     event.preventDefault();
     setError("");
     setNotice("");
@@ -20,7 +30,10 @@ function ProfilePage() {
       return;
     }
 
-    const result = updateProfile({ name, email, password });
+    setIsSaving(true);
+    const result = await updateProfile({ name, email, password });
+    setIsSaving(false);
+
     if (!result.ok) {
       setError(result.message);
       return;
@@ -29,6 +42,10 @@ function ProfilePage() {
     setNotice("Profil je uspešno posodobljen.");
     setPassword("");
   };
+
+  if (!currentUser) {
+    return null;
+  }
 
   return (
     <section className="page-stack">
@@ -41,6 +58,7 @@ function ProfilePage() {
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
+              disabled={isSaving}
             />
           </label>
 
@@ -50,6 +68,7 @@ function ProfilePage() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              disabled={isSaving}
             />
           </label>
 
@@ -59,14 +78,15 @@ function ProfilePage() {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              disabled={isSaving}
             />
           </label>
 
           {error ? <p className="error-text">{error}</p> : null}
           {notice ? <p className="notice-text">{notice}</p> : null}
 
-          <button type="submit" className="btn primary">
-            Shrani spremembe
+          <button type="submit" className="btn primary" disabled={isSaving}>
+            {isSaving ? "Shranjujem..." : "Shrani spremembe"}
           </button>
         </form>
       </article>

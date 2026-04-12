@@ -39,9 +39,11 @@ function AppLayout() {
             <NavLink to="/profile" onClick={closeMenu}>
               Profil
             </NavLink>
-            <NavLink to="/admin" onClick={closeMenu}>
-              Admin
-            </NavLink>
+            {currentUser?.role === "admin" ? (
+              <NavLink to="/admin" onClick={closeMenu}>
+                Admin
+              </NavLink>
+            ) : null}
           </nav>
 
           <div className="desktop-auth app-user">
@@ -49,8 +51,8 @@ function AppLayout() {
             <button
               type="button"
               className="btn secondary"
-              onClick={() => {
-                logout();
+              onClick={async () => {
+                await logout();
                 closeMenu();
               }}
             >

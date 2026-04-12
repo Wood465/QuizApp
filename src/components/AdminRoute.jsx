@@ -2,7 +2,11 @@
 import { useAuth } from "../context/AuthContext";
 
 function AdminRoute({ children }) {
-  const { currentUser } = useAuth();
+  const { currentUser, authReady } = useAuth();
+
+  if (!authReady) {
+    return <main className="simple-page">Nalagam prijavo...</main>;
+  }
 
   if (!currentUser || currentUser.role !== "admin") {
     return <Navigate to="/dashboard" replace />;

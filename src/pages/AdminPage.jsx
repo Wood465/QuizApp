@@ -89,13 +89,13 @@ function AdminPage() {
     resetForm();
   };
 
-  const handleDeleteUser = (user) => {
+  const handleDeleteUser = async (user) => {
     const confirmed = window.confirm(`Ali želiš izbrisati uporabnika ${user.name}?`);
     if (!confirmed) {
       return;
     }
 
-    const result = deleteUser(user.id);
+    const result = await deleteUser(user.id);
     if (!result.ok) {
       setUserNotice(result.message);
       return;
@@ -254,8 +254,8 @@ function AdminPage() {
       </article>
 
       <article className="card">
-        <h2>Upravljanje uporabnikov</h2>
-        <p className="muted">Začasno je ta del dostopen vsem prijavljenim uporabnikom.</p>
+        <h2>Uporabniki (Neon PostgreSQL)</h2>
+        <p className="muted">Upravljanje uporabnikov prek backend API.</p>
         {userNotice ? <p className="notice-text">{userNotice}</p> : null}
 
         <div className="quiz-list">

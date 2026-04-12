@@ -1,124 +1,151 @@
-﻿import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { createId } from "../utils/id";
-import { KEYS, loadFromStorage, saveToStorage } from "../utils/storage";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { apiRequest, getStoredToken, setStoredToken } from "../lib/api";
 
 const AuthContext = createContext(null);
 
-const defaultAdmin = {
-  id: "admin-1",
-  name: "Admin",
-  email: "admin@smartquiz.app",
-  password: "admin123",
-  role: "admin",
-};
-
 export function AuthProvider({ children }) {
-  const [users, setUsers] = useState(() => {
-    const stored = loadFromStorage(KEYS.users, []);
-    return stored.length ? stored : [defaultAdmin];
-  });
-  const [currentUser, setCurrentUser] = useState(() =>
-    loadFromStorage(KEYS.currentUser, null),
-  );
+  const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  const loadCurrentUser = async () => {
+    const token = getStoredToken();
+    if (!token) {
+      setCurrentUser(null);
+      setAuthReady(true);
+      return;
+    }
+
+    try {
+      const data = await apiRequest("/api/auth/me");
+      setCurrentUser(data.user || null);
+    } catch {
+      setStoredToken("");
+      setCurrentUser(null);
+    } finally {
+      setAuthReady(true);
+    }
+  };
+
+  const loadUsersIfAdmin = async (user) => {
+    if (!user || user.role !== "admin") {
+      setUsers([]);
+      return;
+    }
+
+    try {
+      const data = await apiRequest("/api/users");
+      setUsers(data.users || []);
+    } catch {
+      setUsers([]);
+    }
+  };
 
   useEffect(() => {
-    saveToStorage(KEYS.users, users);
-  }, [users]);
+    loadCurrentUser();
+  }, []);
 
   useEffect(() => {
-    saveToStorage(KEYS.currentUser, currentUser);
+    loadUsersIfAdmin(currentUser);
   }, [currentUser]);
 
-  const register = ({ name, email, password }) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const userExists = users.some((user) => user.email === normalizedEmail);
-    if (userExists) {
-      return { ok: false, message: "User with this email already exists." };
+  const register = async ({ name, email, password }) => {
+    try {
+      const data = await apiRequest("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      setStoredToken(data.token || "");
+      setCurrentUser(data.user || null);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: error.message };
     }
-
-    const newUser = {
-      id: createId(),
-      name: name.trim(),
-      email: normalizedEmail,
-      password,
-      role: "user",
-    };
-
-    setUsers((prev) => [...prev, newUser]);
-    setCurrentUser(newUser);
-    return { ok: true };
   };
 
-  const login = ({ email, password }) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const matchedUser = users.find(
-      (user) => user.email === normalizedEmail && user.password === password,
-    );
+  const login = async ({ email, password }) => {
+    try {
+      const data = await apiRequest("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!matchedUser) {
-      return { ok: false, message: "Invalid email or password." };
+      setStoredToken(data.token || "");
+      setCurrentUser(data.user || null);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: error.message };
     }
-
-    setCurrentUser(matchedUser);
-    return { ok: true };
   };
 
-  const logout = () => setCurrentUser(null);
+  const loginWithGoogle = async (credential) => {
+    try {
+      const data = await apiRequest("/api/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ idToken: credential }),
+      });
 
-  const deleteUser = (userId) => {
-    const userToDelete = users.find((user) => user.id === userId);
-    if (!userToDelete) {
-      return { ok: false, message: "User does not exist." };
+      setStoredToken(data.token || "");
+      setCurrentUser(data.user || null);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: error.message };
     }
-
-    setUsers((prev) => prev.filter((user) => user.id !== userId));
-    if (currentUser?.id === userId) {
-      setCurrentUser(null);
-    }
-
-    return { ok: true };
   };
 
-  const updateProfile = ({ name, email, password }) => {
-    if (!currentUser) {
-      return { ok: false, message: "User is not logged in." };
+  const logout = async () => {
+    setStoredToken("");
+    setCurrentUser(null);
+    setUsers([]);
+  };
+
+  const deleteUser = async (userId) => {
+    try {
+      await apiRequest(`/api/users/${userId}`, { method: "DELETE" });
+      setUsers((prev) => prev.filter((item) => item.id !== userId));
+      if (currentUser?.id === userId) {
+        setStoredToken("");
+        setCurrentUser(null);
+      }
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: error.message };
     }
+  };
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const emailTaken = users.some(
-      (user) => user.email === normalizedEmail && user.id !== currentUser.id,
-    );
+  const updateProfile = async ({ name, email, password }) => {
+    try {
+      const data = await apiRequest("/api/auth/profile", {
+        method: "PUT",
+        body: JSON.stringify({ name, email, password }),
+      });
 
-    if (emailTaken) {
-      return { ok: false, message: "Email is already in use." };
+      if (data.token) {
+        setStoredToken(data.token);
+      }
+      setCurrentUser(data.user || null);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: error.message };
     }
-
-    const updatedUser = {
-      ...currentUser,
-      name: name.trim(),
-      email: normalizedEmail,
-      password: password.trim() ? password : currentUser.password,
-    };
-
-    setUsers((prev) =>
-      prev.map((user) => (user.id === updatedUser.id ? updatedUser : user)),
-    );
-    setCurrentUser(updatedUser);
-    return { ok: true };
   };
 
   const value = useMemo(
     () => ({
       users,
       currentUser,
+      authReady,
       isAuthenticated: Boolean(currentUser),
+      configError: "",
       register,
       login,
+      loginWithGoogle,
       logout,
       deleteUser,
       updateProfile,
     }),
-    [users, currentUser],
+    [users, currentUser, authReady],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

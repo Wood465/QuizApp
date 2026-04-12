@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #f4f6f8;
   --surface: #ffffff;
   --text: #1f2a37;
@@ -84,6 +84,11 @@ a {
   padding: 10px 14px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn.primary {
@@ -219,6 +224,22 @@ footer {
 .form-stack {
   display: grid;
   gap: 12px;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.auth-divider {
+  margin: 12px 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+.google-auth-wrap {
+  display: flex;
+  justify-content: center;
 }
 
 .form-stack label {

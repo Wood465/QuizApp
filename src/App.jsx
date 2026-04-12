@@ -1,4 +1,5 @@
-﻿import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
+import AdminRoute from "./components/AdminRoute";
 import AppLayout from "./components/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
@@ -12,10 +13,16 @@ import ResultsPage from "./pages/ResultsPage";
 import SignupPage from "./pages/SignupPage";
 
 function PublicOnlyRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, authReady } = useAuth();
+
+  if (!authReady) {
+    return <main className="simple-page">Nalagam prijavo...</main>;
+  }
+
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
+
   return children;
 }
 
@@ -52,7 +59,14 @@ function App() {
         <Route path="/quizzes" element={<QuizzesPage />} />
         <Route path="/results" element={<ResultsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
+          }
+        />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
