@@ -1,4 +1,6 @@
-const API_URL = (import.meta.env.VITE_API_URL || "").trim().replace(/\/$/, "");
+import { resolveApiBase } from "./apiBase";
+
+const API_URL = resolveApiBase();
 
 export async function apiRequest(path, options = {}) {
   const headers = { ...(options.headers || {}) };
