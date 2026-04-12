@@ -57,6 +57,9 @@ function LoginPage() {
   return (
     <main className="simple-page">
       <div className="simple-card">
+        <p className="muted">
+          <Link to="/">← Nazaj</Link>
+        </p>
         <h1>Prijava</h1>
         {configError ? <p className="error-text">{configError}</p> : null}
 
@@ -83,7 +86,11 @@ function LoginPage() {
 
           {error ? <p className="error-text">{error}</p> : null}
 
-          <button type="submit" className="btn primary" disabled={isLoading || Boolean(configError)}>
+          <button
+            type="submit"
+            className="btn primary"
+            disabled={isLoading || Boolean(configError)}
+          >
             {isLoading ? "Počakaj..." : "Prijava"}
           </button>
         </form>

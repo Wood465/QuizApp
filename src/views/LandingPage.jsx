@@ -9,7 +9,7 @@ function LandingPage() {
       <header className="navbar">
         <div className="container navbar-inner">
           <Link to="/" className="logo">
-            Smart<span>Quiz</span>
+            Quiz<span>App</span>
           </Link>
 
           <button
@@ -27,7 +27,7 @@ function LandingPage() {
               Funkcionalnosti
             </a>
             <a href="#zakaj" onClick={() => setMenuOpen(false)}>
-              Zakaj Smart Quiz
+              Zakaj QuizApp
             </a>
             <a href="#kontakt" onClick={() => setMenuOpen(false)}>
               Kontakt
@@ -47,9 +47,9 @@ function LandingPage() {
           <div>
             <h1>Uči se hitreje z interaktivnimi kvizi</h1>
             <p>
-              Smart Quiz App omogoča reševanje kvizov po temah in težavnosti,
-              spremljanje rezultatov ter napredka. Vključen je tudi admin del za
-              upravljanje vsebine.
+              QuizApp omogoča reševanje kvizov po temah in težavnosti, spremljanje
+              rezultatov ter napredka. Vključen je tudi admin del za upravljanje
+              vsebine.
             </p>
             <div className="hero-actions">
               <Link className="btn primary" to="/signup">
@@ -104,10 +104,11 @@ function LandingPage() {
       </main>
 
       <footer id="kontakt">
-        <div className="container">© 2026 SmartQuiz. Vse pravice pridržane.</div>
+        <div className="container">© 2026 QuizApp. Vse pravice pridržane.</div>
       </footer>
     </>
   );
 }
 
 export default LandingPage;
+

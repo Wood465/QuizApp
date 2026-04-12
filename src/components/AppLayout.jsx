@@ -1,10 +1,11 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -13,7 +14,7 @@ function AppLayout() {
       <header className="navbar app-navbar">
         <div className="container navbar-inner">
           <NavLink to="/dashboard" className="logo" onClick={closeMenu}>
-            Smart<span>Quiz</span>
+            Quiz<span>App</span>
           </NavLink>
 
           <button
@@ -54,6 +55,7 @@ function AppLayout() {
               onClick={async () => {
                 await logout();
                 closeMenu();
+                navigate("/", { replace: true });
               }}
             >
               Odjava

@@ -1,4 +1,4 @@
-# Smart Quiz App (One Deploy on Vercel)
+# QuizApp (One Deploy on Vercel)
 
 Projekt je nastavljen za EN deploy na Vercel:
 - frontend (Vite build iz `dist`)
