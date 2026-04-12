@@ -2,6 +2,7 @@
 import { apiRequest, getStoredToken, setStoredToken } from "../lib/api";
 
 const AuthContext = createContext(null);
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 export function AuthProvider({ children }) {
   const [users, setUsers] = useState([]);
@@ -81,7 +82,9 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = ({ nextPath = "/dashboard" } = {}) => {
     const safeNext = nextPath.startsWith("/") ? nextPath : "/dashboard";
-    window.location.href = `/api/auth/google/start?next=${encodeURIComponent(safeNext)}`;
+    window.location.href = `${API_BASE}/api/auth/google/start?next=${encodeURIComponent(
+      safeNext,
+    )}`;
   };
 
   const loginWithToken = async (token) => {

@@ -11,6 +11,7 @@ dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
+const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || "http://localhost:5173";
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173" }));
 app.use(express.json());
@@ -149,9 +150,10 @@ app.get("/api/auth/google/callback", async (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID || "";
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || "";
+  const frontendLoginUrl = `${frontendUrl}/login`;
 
   if (!clientId || !clientSecret || !redirectUri) {
-    return res.redirect("/login?error=google_config");
+    return res.redirect(`${frontendLoginUrl}?error=google_config`);
   }
 
   const code = req.query.code || "";
@@ -166,7 +168,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
   }
 
   if (!code) {
-    return res.redirect("/login?error=google_code");
+    return res.redirect(`${frontendLoginUrl}?error=google_code`);
   }
 
   const oauth = new OAuth2Client(clientId, clientSecret, redirectUri);
@@ -176,20 +178,20 @@ app.get("/api/auth/google/callback", async (req, res) => {
     const { tokens } = await oauth.getToken({ code, redirect_uri: redirectUri });
     const idToken = tokens.id_token;
     if (!idToken) {
-      return res.redirect("/login?error=google_id_token");
+      return res.redirect(`${frontendLoginUrl}?error=google_id_token`);
     }
 
     const ticket = await oauth.verifyIdToken({ idToken, audience: clientId });
     payload = ticket.getPayload();
   } catch {
-    return res.redirect("/login?error=google_verify");
+    return res.redirect(`${frontendLoginUrl}?error=google_verify`);
   }
 
   const email = (payload?.email || "").toLowerCase();
   const name = payload?.name || email.split("@")[0] || "Uporabnik";
 
   if (!email) {
-    return res.redirect("/login?error=google_email");
+    return res.redirect(`${frontendLoginUrl}?error=google_email`);
   }
 
   const adminEmail = (process.env.ADMIN_EMAIL || "").toLowerCase();
@@ -209,7 +211,9 @@ app.get("/api/auth/google/callback", async (req, res) => {
 
   const user = upserted.rows[0];
   const token = signToken(user);
-  return res.redirect(`/login?token=${encodeURIComponent(token)}&next=${encodeURIComponent(nextPath)}`);
+  return res.redirect(
+    `${frontendLoginUrl}?token=${encodeURIComponent(token)}&next=${encodeURIComponent(nextPath)}`,
+  );
 });
 
 app.get("/api/auth/me", async (req, res) => {

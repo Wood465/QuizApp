@@ -1,0 +1,38 @@
+
+> razvoj-aplikacije@1.0.0 dev
+> concurrently "npm run dev:server" "npm run dev:client"
+
+[0] 
+[0] > razvoj-aplikacije@1.0.0 dev:server
+[0] > node server/index.js
+[0] 
+[1] 
+[1] > razvoj-aplikacije@1.0.0 dev:client
+[1] > vite
+[1] 
+[0] ◇ injected env (8) from server\.env // tip: ⌘ enable debugging { debug: true }
+[0] ◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+[0] ◇ injected env (0) from server\.env // tip: ⌘ override existing { override: true }
+[0] ◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+[0] (node:13000) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+[0] In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+[0] 
+[0] To prepare for this change:
+[0] - If you want the current behavior, explicitly use 'sslmode=verify-full'
+[0] - If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+[0] 
+[0] See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+[0] (Use `node --trace-warnings ...` to show where the warning was created)
+[1] 
+[1]   [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m386[22m[2m[0m ms[22m
+[1] 
+[1]   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[1] [2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[0] API running on http://localhost:4000
+[1] [2m11:49:08[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/context/AuthContext.jsx[22m
+[1] [2m11:51:50[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+[1] [31mfailed to load config from C:\XammpVaja\htdocs\GitHub\QuizApp\vite.config.js[39m
+[1] [2m11:51:50[22m [31m[1m[vite][22m[39m Cannot find package '@vitejs/plugin-react' imported from C:\XammpVaja\htdocs\GitHub\QuizApp\vite.config.js.timestamp-1775987510328-de21b250c7678.mjs
+[1] [2m11:51:50[22m [31m[1m[vite][22m[39m server restart failed
+[1] npm run dev:client exited with code 1
+[0] npm run dev:server exited with code 4294967295
