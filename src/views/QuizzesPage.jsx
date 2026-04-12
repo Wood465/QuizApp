@@ -67,14 +67,11 @@ function QuizzesPage() {
               <div>
                 <h3>{quiz.title}</h3>
                 <p className="muted">
-                  Tema: {quiz.topic} | Težavnost: {quiz.difficulty} | Vprašanja: {quiz.questions.length}
+                  Tema: {quiz.topic} | Težavnost: {quiz.difficulty} | Vprašanja:{" "}
+                  {quiz.questions.length}
                 </p>
               </div>
-              <button
-                type="button"
-                className="btn primary"
-                onClick={() => startQuiz(quiz.id)}
-              >
+              <button type="button" className="btn primary" onClick={() => startQuiz(quiz.id)}>
                 Začni kviz
               </button>
             </div>
@@ -91,23 +88,25 @@ function QuizzesPage() {
                 <legend>
                   {index + 1}. {question.text}
                 </legend>
-                {question.options.map((option, optionIndex) => (
-                  <label key={option} className="radio-row">
-                    <input
-                      type="radio"
-                      name={question.id}
-                      value={optionIndex}
-                      checked={answers[question.id] === String(optionIndex)}
-                      onChange={(event) =>
-                        setAnswers((prev) => ({
-                          ...prev,
-                          [question.id]: event.target.value,
-                        }))
-                      }
-                    />
-                    {option}
-                  </label>
-                ))}
+                <div className="question-options">
+                  {question.options.map((option, optionIndex) => (
+                    <label key={`${question.id}-${optionIndex}`} className="radio-row">
+                      <input
+                        type="radio"
+                        name={question.id}
+                        value={optionIndex}
+                        checked={answers[question.id] === String(optionIndex)}
+                        onChange={(event) =>
+                          setAnswers((prev) => ({
+                            ...prev,
+                            [question.id]: event.target.value,
+                          }))
+                        }
+                      />
+                      <span>{option}</span>
+                    </label>
+                  ))}
+                </div>
               </fieldset>
             ))}
 
@@ -125,3 +124,4 @@ function QuizzesPage() {
 }
 
 export default QuizzesPage;
+

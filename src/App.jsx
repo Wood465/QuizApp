@@ -4,13 +4,16 @@ import AppLayout from "./components/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
 import AdminPage from "./views/AdminPage";
+import ContactPage from "./views/ContactPage";
 import DashboardPage from "./views/DashboardPage";
+import FeaturesPage from "./views/FeaturesPage";
 import LandingPage from "./views/LandingPage";
 import LoginPage from "./views/LoginPage";
 import ProfilePage from "./views/ProfilePage";
 import QuizzesPage from "./views/QuizzesPage";
 import ResultsPage from "./views/ResultsPage";
 import SignupPage from "./views/SignupPage";
+import WhyPage from "./views/WhyPage";
 
 function PublicOnlyRoute({ children }) {
   const { isAuthenticated, authReady } = useAuth();
@@ -30,6 +33,9 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/funkcije" element={<FeaturesPage />} />
+      <Route path="/zakaj" element={<WhyPage />} />
+      <Route path="/kontakt" element={<ContactPage />} />
 
       <Route
         path="/login"

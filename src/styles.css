@@ -343,15 +343,39 @@ select {
   padding: 0 4px;
 }
 
-.radio-row {
-  display: flex;
-  align-items: center;
+.question-options {
+  display: grid;
   gap: 8px;
-  font-weight: 500;
+  margin-top: 10px;
 }
 
-.radio-row input {
-  width: auto;
+.question-box .radio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.question-box .radio-row:hover {
+  border-color: #c0cfde;
+  background: #f8fbfd;
+}
+
+.question-box .radio-row input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--primary);
+}
+
+.question-box .radio-row span {
+  line-height: 1.35;
 }
 
 .table-wrap {
