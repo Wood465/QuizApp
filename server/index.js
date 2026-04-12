@@ -352,6 +352,10 @@ app.put("/api/auth/profile", async (req, res) => {
   }
 
   let passwordHash = null;
+  if (authUser.provider === "google" && password.trim()) {
+    return res.status(400).json({ message: "Google uporabniki ne morejo spremeniti gesla tukaj." });
+  }
+
   if (password.trim()) {
     if (password.trim().length < 6) {
       return res.status(400).json({ message: "Password must contain at least 6 characters." });
@@ -359,18 +363,14 @@ app.put("/api/auth/profile", async (req, res) => {
     passwordHash = await bcrypt.hash(password.trim(), 10);
   }
 
-  const adminEmail = (process.env.ADMIN_EMAIL || "").toLowerCase();
-  const role = adminEmail && email === adminEmail ? "admin" : authUser.role;
-
   const updated = await pool.query(
     `UPDATE users
      SET name = $1,
          email = $2,
-         role = $3,
-         password_hash = COALESCE($4, password_hash)
-     WHERE id = $5
+         password_hash = COALESCE($3, password_hash)
+     WHERE id = $4
      RETURNING id, name, email, role, provider`,
-    [name, email, role, passwordHash, authUser.id],
+    [name, email, passwordHash, authUser.id],
   );
 
   const user = updated.rows[0];

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 function ProfilePage() {
@@ -20,6 +20,12 @@ function ProfilePage() {
     setEmail(currentUser.email || "");
   }, [currentUser]);
 
+  if (!currentUser) {
+    return null;
+  }
+
+  const isGoogleUser = currentUser.provider === "google";
+
   const submit = async (event) => {
     event.preventDefault();
     setError("");
@@ -31,7 +37,11 @@ function ProfilePage() {
     }
 
     setIsSaving(true);
-    const result = await updateProfile({ name, email, password });
+    const result = await updateProfile({
+      name,
+      email,
+      ...(isGoogleUser ? {} : { password }),
+    });
     setIsSaving(false);
 
     if (!result.ok) {
@@ -42,10 +52,6 @@ function ProfilePage() {
     setNotice("Profil je uspešno posodobljen.");
     setPassword("");
   };
-
-  if (!currentUser) {
-    return null;
-  }
 
   return (
     <section className="page-stack">
@@ -72,15 +78,21 @@ function ProfilePage() {
             />
           </label>
 
-          <label>
-            Novo geslo (opcijsko)
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              disabled={isSaving}
-            />
-          </label>
+          {isGoogleUser ? (
+            <p className="muted">
+              Prijavljen si z Google računom, zato menjava gesla tukaj ni na voljo.
+            </p>
+          ) : (
+            <label>
+              Novo geslo (opcijsko)
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={isSaving}
+              />
+            </label>
+          )}
 
           {error ? <p className="error-text">{error}</p> : null}
           {notice ? <p className="notice-text">{notice}</p> : null}

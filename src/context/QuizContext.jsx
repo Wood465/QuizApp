@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { apiRequest } from "../lib/api";
 
@@ -10,12 +10,12 @@ export function QuizProvider({ children }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadQuizzes = async () => {
+  const loadQuizzes = useCallback(async () => {
     const data = await apiRequest("/api/quizzes");
     setQuizzes(data.quizzes || []);
-  };
+  }, []);
 
-  const loadResults = async () => {
+  const loadResults = useCallback(async () => {
     if (!currentUser) {
       setResults([]);
       return;
@@ -23,9 +23,9 @@ export function QuizProvider({ children }) {
 
     const data = await apiRequest("/api/results");
     setResults(data.results || []);
-  };
+  }, [currentUser]);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
       await loadQuizzes();
@@ -33,14 +33,44 @@ export function QuizProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadQuizzes, loadResults]);
 
   useEffect(() => {
     if (!authReady) {
       return;
     }
-    refresh();
-  }, [authReady, currentUser?.id]);
+    refresh().catch(() => {
+      // Ignore initial refresh errors; UI handles empty/error states elsewhere.
+    });
+  }, [authReady, currentUser?.id, refresh]);
+
+  useEffect(() => {
+    if (!authReady || !currentUser) {
+      return;
+    }
+
+    const sync = () => {
+      refresh().catch(() => {
+        // Ignore background sync errors.
+      });
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        sync();
+      }
+    };
+
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    const timer = window.setInterval(sync, 15000);
+
+    return () => {
+      window.removeEventListener("focus", sync);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.clearInterval(timer);
+    };
+  }, [authReady, currentUser, refresh]);
 
   const addQuiz = async ({ title, topic, difficulty, questions }) => {
     const data = await apiRequest("/api/quizzes", {
