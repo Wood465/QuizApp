@@ -1,23 +1,13 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { StrictMode } from "react";
+import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { QuizProvider } from "./context/QuizContext";
+import "./styles.css";
 
-export default function ClientApp() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
-
-  return (
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <QuizProvider>
@@ -25,5 +15,5 @@ export default function ClientApp() {
         </QuizProvider>
       </AuthProvider>
     </BrowserRouter>
-  );
-}
+  </StrictMode>,
+);

@@ -1,6 +1,6 @@
-﻿# Smart Quiz App (Next.js)
+# Smart Quiz App (React + Vite)
 
-Aplikacija je migrirana na Next.js (App Router) in uporablja Neon PostgreSQL bazo prek Next API route endpointov.
+Aplikacija uporablja React (Vite) frontend in Express API backend z Neon PostgreSQL.
 
 ## Zagon
 
@@ -10,39 +10,36 @@ Aplikacija je migrirana na Next.js (App Router) in uporablja Neon PostgreSQL baz
 npm install
 ```
 
-2. Nastavi `.env.local` v root projekta:
+2. Frontend env (`.env.local`):
 
 ```env
-NEXT_PUBLIC_API_URL=
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+VITE_API_URL=http://localhost:4000
+VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+```
 
+3. Backend env (`server/.env`):
+
+```env
+PORT=4000
 DATABASE_URL=postgresql://USER:PASSWORD@HOST.neon.tech/DBNAME?channel_binding=require&sslmode=require
 JWT_SECRET=very_long_random_secret
 ADMIN_EMAIL=admin@example.com
 GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+GOOGLE_REDIRECT_URI=http://localhost:4000/api/auth/google/callback
+CORS_ORIGIN=http://localhost:5173
 ```
 
-Opomba: `NEXT_PUBLIC_API_URL` pusti prazno za isti origin (priporočeno v Next). Če rabiš ločen API host, nastavi cel URL.
-
-3. Zaženi development:
+4. Zaženi frontend + backend:
 
 ```bash
 npm run dev
 ```
 
-4. Production build:
-
-```bash
-npm run build
-npm run start
-```
-
 ## Google OAuth nastavitev
 
-- `Authorized JavaScript origins`: `http://localhost:3000`
-- `Authorized redirect URIs`: `http://localhost:3000/api/auth/google/callback`
+- Authorized JavaScript origins: `http://localhost:5173`
+- Authorized redirect URIs: `http://localhost:4000/api/auth/google/callback`
 
 ## API endpointi
 
@@ -54,8 +51,3 @@ npm run start
 - `PUT /api/auth/profile`
 - `GET /api/users` (admin)
 - `DELETE /api/users/:id` (admin)
-
-## Opombe
-
-- Tabela `users` se ustvari samodejno ob prvem requestu.
-- Uporabnik z emailom enakim `ADMIN_EMAIL` dobi vlogo `admin`.
