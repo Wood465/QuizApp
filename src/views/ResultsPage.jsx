@@ -1,6 +1,13 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useQuiz } from "../context/QuizContext";
+
+function formatDuration(seconds) {
+  const safeSeconds = Number.isFinite(seconds) ? Math.max(0, Math.round(seconds)) : 0;
+  const mins = Math.floor(safeSeconds / 60);
+  const secs = safeSeconds % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
+}
 
 function ResultsPage() {
   const { currentUser } = useAuth();
@@ -17,12 +24,12 @@ function ResultsPage() {
     <section className="page-stack">
       <article className="card">
         <h1>Rezultati</h1>
-        <p className="muted">Pregled vseh rešenih kvizov in dosežkov.</p>
+        <p className="muted">Pregled vseh resenih kvizov in dosezkov.</p>
 
         {loading ? (
           <p className="muted">Nalagam rezultate...</p>
         ) : myResults.length === 0 ? (
-          <p className="muted">Še nimaš rezultatov. Začni prvi kviz.</p>
+          <p className="muted">Se nimas rezultatov. Zacni prvi kviz.</p>
         ) : (
           <div className="results-history">
             {myResults.map((result) => {
@@ -30,6 +37,10 @@ function ResultsPage() {
               const wrongItems = review.filter((item) => item && !item.isCorrect);
               const hasReview = review.length > 0;
               const isOpen = openedResultId === result.id;
+              const timeLabel =
+                Number(result.durationSeconds) > 0
+                  ? formatDuration(result.durationSeconds)
+                  : "ni zabelezen";
 
               return (
                 <article key={result.id} className="review-item">
@@ -37,8 +48,9 @@ function ResultsPage() {
                     <div>
                       <h3>{result.quizTitle}</h3>
                       <p className="muted">
-                        {result.score}/{result.total} ({result.percentage}%) -{" "}
+                        {result.score}/{result.total} ({result.percentage}%) |{" "}
                         {new Date(result.createdAt).toLocaleString("sl-SI")}
+                        {` | cas: ${timeLabel}`}
                       </p>
                     </div>
                     <button
@@ -46,7 +58,7 @@ function ResultsPage() {
                       className="btn secondary"
                       onClick={() => toggleDetails(result.id)}
                     >
-                      {isOpen ? "Skrij podrobnosti" : "Prikaži podrobnosti"}
+                      {isOpen ? "Skrij podrobnosti" : "Prikazi podrobnosti"}
                     </button>
                   </div>
 
@@ -59,7 +71,10 @@ function ResultsPage() {
                       ) : (
                         <div className="review-list">
                           {wrongItems.map((item, index) => (
-                            <article key={`${result.id}-${item.questionId}`} className="review-item review-item-wrong">
+                            <article
+                              key={`${result.id}-${item.questionId}`}
+                              className="review-item review-item-wrong"
+                            >
                               <h3>
                                 {index + 1}. {item.text}
                               </h3>
@@ -75,7 +90,7 @@ function ResultsPage() {
                       )
                     ) : (
                       <p className="muted">
-                        Za ta starejši rezultat podrobnosti odgovorov niso na voljo.
+                        Za ta starejsi rezultat podrobnosti odgovorov niso na voljo.
                       </p>
                     )
                   ) : null}
@@ -90,4 +105,3 @@ function ResultsPage() {
 }
 
 export default ResultsPage;
-

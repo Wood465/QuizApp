@@ -484,7 +484,7 @@ app.get("/api/results", async (req, res) => {
   }
 
   const rows = await pool.query(
-    `SELECT id, user_id, quiz_id, quiz_title, score, total, percentage, review, created_at
+    `SELECT id, user_id, quiz_id, quiz_title, score, total, percentage, duration_seconds, review, created_at
      FROM results
      WHERE user_id = $1
      ORDER BY created_at DESC`,
@@ -499,6 +499,7 @@ app.get("/api/results", async (req, res) => {
     score: r.score,
     total: r.total,
     percentage: r.percentage,
+    durationSeconds: Number(r.duration_seconds) || 0,
     review: Array.isArray(r.review) ? r.review : [],
     createdAt: r.created_at,
   }));
@@ -514,6 +515,10 @@ app.post("/api/results/submit", async (req, res) => {
 
   const quizId = req.body.quizId;
   const answers = Array.isArray(req.body.answers) ? req.body.answers.map((x) => Number(x)) : [];
+  const rawDurationSeconds = Number(req.body.durationSeconds);
+  const durationSeconds = Number.isFinite(rawDurationSeconds)
+    ? Math.max(0, Math.round(rawDurationSeconds))
+    : 0;
 
   if (!quizId || !answers.length) {
     return res.status(400).json({ message: "Invalid payload." });
@@ -561,10 +566,19 @@ app.post("/api/results/submit", async (req, res) => {
   const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
 
   const inserted = await pool.query(
-    `INSERT INTO results (user_id, quiz_id, quiz_title, score, total, percentage, review)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
-     RETURNING id, user_id, quiz_id, quiz_title, score, total, percentage, review, created_at`,
-    [authUser.id, quiz.id, quiz.title, score, total, percentage, JSON.stringify(review)],
+    `INSERT INTO results (user_id, quiz_id, quiz_title, score, total, percentage, duration_seconds, review)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+     RETURNING id, user_id, quiz_id, quiz_title, score, total, percentage, duration_seconds, review, created_at`,
+    [
+      authUser.id,
+      quiz.id,
+      quiz.title,
+      score,
+      total,
+      percentage,
+      durationSeconds,
+      JSON.stringify(review),
+    ],
   );
 
   const row = inserted.rows[0];
@@ -576,6 +590,7 @@ app.post("/api/results/submit", async (req, res) => {
     score: row.score,
     total: row.total,
     percentage: row.percentage,
+    durationSeconds: Number(row.duration_seconds) || 0,
     review: Array.isArray(row.review) ? row.review : [],
     createdAt: row.created_at,
   };

@@ -57,6 +57,7 @@ export async function initDb() {
       score INTEGER NOT NULL,
       total INTEGER NOT NULL,
       percentage INTEGER NOT NULL,
+      duration_seconds INTEGER NOT NULL DEFAULT 0,
       review JSONB NOT NULL DEFAULT '[]'::jsonb,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -65,6 +66,11 @@ export async function initDb() {
   await pool.query(`
     ALTER TABLE results
     ADD COLUMN IF NOT EXISTS review JSONB NOT NULL DEFAULT '[]'::jsonb;
+  `);
+
+  await pool.query(`
+    ALTER TABLE results
+    ADD COLUMN IF NOT EXISTS duration_seconds INTEGER NOT NULL DEFAULT 0;
   `);
 
   await pool.query(`

@@ -107,11 +107,11 @@ export function QuizProvider({ children }) {
     setResults((prev) => prev.filter((result) => result.quizId !== quizId));
   };
 
-  const submitQuiz = async ({ quizId, answers }) => {
+  const submitQuiz = async ({ quizId, answers, durationSeconds = 0 }) => {
     try {
       const data = await apiRequest("/api/results/submit", {
         method: "POST",
-        body: JSON.stringify({ quizId, answers }),
+        body: JSON.stringify({ quizId, answers, durationSeconds }),
       });
 
       const entry = data.entry;

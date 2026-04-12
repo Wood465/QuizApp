@@ -408,6 +408,57 @@ select {
   flex-wrap: wrap;
 }
 
+.progress-controls {
+  display: grid;
+  gap: 6px;
+  max-width: 360px;
+  margin: 10px 0 14px;
+}
+
+.progress-controls label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.progress-inline-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.progress-inline-metrics strong {
+  color: var(--text);
+}
+
+.progress-delta {
+  font-weight: 700;
+}
+
+.progress-up {
+  color: #0f7a55;
+}
+
+.progress-down {
+  color: #b42318;
+}
+
+.progress-chart-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.progress-chart {
+  width: 100%;
+  min-width: 520px;
+  height: auto;
+  display: block;
+}
+
 .review-item {
   border: 1px solid var(--border);
   border-radius: 10px;

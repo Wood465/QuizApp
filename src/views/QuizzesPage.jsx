@@ -1,6 +1,13 @@
 ﻿import { useMemo, useRef, useState } from "react";
 import { useQuiz } from "../context/QuizContext";
 
+function formatDuration(seconds) {
+  const safeSeconds = Number.isFinite(seconds) ? Math.max(0, Math.round(seconds)) : 0;
+  const mins = Math.floor(safeSeconds / 60);
+  const secs = safeSeconds % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
+}
+
 function buildAttemptReview(quiz, normalizedAnswers) {
   return quiz.questions.map((question, index) => {
     const selectedIndex = Number(normalizedAnswers[index]);
@@ -23,6 +30,7 @@ function QuizzesPage() {
 
   const [selectedQuizId, setSelectedQuizId] = useState("");
   const [topicFilter, setTopicFilter] = useState("all");
+  const [attemptStartedAt, setAttemptStartedAt] = useState(null);
   const [answers, setAnswers] = useState({});
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -50,6 +58,7 @@ function QuizzesPage() {
 
   const startQuiz = (quizId) => {
     setSelectedQuizId(quizId);
+    setAttemptStartedAt(Date.now());
     setAnswers({});
     setError("");
     setNotice("");
@@ -79,10 +88,14 @@ function QuizzesPage() {
     const normalizedAnswers = selectedQuiz.questions.map((question) =>
       Number(answers[question.id]),
     );
+    const durationSeconds = attemptStartedAt
+      ? Math.max(1, Math.round((Date.now() - attemptStartedAt) / 1000))
+      : 1;
 
     const result = await submitQuiz({
       quizId: selectedQuiz.id,
       answers: normalizedAnswers,
+      durationSeconds,
     });
 
     if (!result.ok) {
@@ -91,7 +104,7 @@ function QuizzesPage() {
     }
 
     setNotice(
-      `Kviz uspesno oddan. Rezultat: ${result.entry.score}/${result.entry.total} (${result.entry.percentage}%).`,
+      `Kviz uspesno oddan. Rezultat: ${result.entry.score}/${result.entry.total} (${result.entry.percentage}%), cas: ${formatDuration(durationSeconds)}.`,
     );
     setLastReview({
       quizTitle: selectedQuiz.title,
@@ -102,6 +115,7 @@ function QuizzesPage() {
     });
     setError("");
     setSelectedQuizId("");
+    setAttemptStartedAt(null);
   };
 
   return (
