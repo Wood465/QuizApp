@@ -1,4 +1,4 @@
-﻿import { pool } from "./db.js";
+import { pool } from "./db.js";
 import { verifyToken } from "./jwt.js";
 
 export function json(res, status, payload) {
@@ -17,6 +17,53 @@ export function parseBody(req) {
     }
   }
   return req.body;
+}
+
+export function parseCookies(req) {
+  const raw = req.headers.cookie || "";
+  const out = {};
+
+  raw.split(";").forEach((chunk) => {
+    const [k, ...rest] = chunk.trim().split("=");
+    if (!k) {
+      return;
+    }
+    out[k] = decodeURIComponent(rest.join("=") || "");
+  });
+
+  return out;
+}
+
+export function setAuthCookie(res, token) {
+  const isProd = process.env.NODE_ENV === "production";
+  const cookie = [
+    `auth_token=${encodeURIComponent(token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    isProd ? "Secure" : "",
+    "Max-Age=604800",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  res.setHeader("Set-Cookie", cookie);
+}
+
+export function clearAuthCookie(res) {
+  const isProd = process.env.NODE_ENV === "production";
+  const cookie = [
+    "auth_token=",
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    isProd ? "Secure" : "",
+    "Max-Age=0",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  res.setHeader("Set-Cookie", cookie);
 }
 
 export function toPublicUser(user) {
@@ -57,7 +104,10 @@ export function normalizeFrontendOrigin(origin, fallback) {
 
 export async function getAuthUser(req) {
   const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const headerToken = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const cookieToken = parseCookies(req).auth_token || null;
+  const token = headerToken || cookieToken;
+
   if (!token) {
     return null;
   }

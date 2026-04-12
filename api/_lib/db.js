@@ -1,4 +1,5 @@
-﻿import { Pool } from "pg";
+import { Pool } from "pg";
+import { defaultQuizzes } from "../../src/data/defaultQuizzes.js";
 
 const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 if (!connectionString) {
@@ -43,6 +44,31 @@ export async function initDb() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS quizzes (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      topic TEXT NOT NULL,
+      difficulty TEXT NOT NULL,
+      questions JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS results (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      quiz_id TEXT NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
+      quiz_title TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      total INTEGER NOT NULL,
+      percentage INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
     CREATE OR REPLACE FUNCTION set_updated_at()
     RETURNS TRIGGER AS $$
     BEGIN
@@ -59,6 +85,28 @@ export async function initDb() {
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
   `);
+
+  await pool.query(`
+    DROP TRIGGER IF EXISTS trg_quizzes_updated_at ON quizzes;
+    CREATE TRIGGER trg_quizzes_updated_at
+    BEFORE UPDATE ON quizzes
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at();
+  `);
+
+  const quizCountResult = await pool.query("SELECT COUNT(*)::int AS count FROM quizzes");
+  const quizCount = quizCountResult.rows[0]?.count || 0;
+
+  if (quizCount === 0) {
+    for (const quiz of defaultQuizzes) {
+      await pool.query(
+        `INSERT INTO quizzes (id, title, topic, difficulty, questions)
+         VALUES ($1, $2, $3, $4, $5::jsonb)
+         ON CONFLICT (id) DO NOTHING`,
+        [quiz.id, quiz.title, quiz.topic, quiz.difficulty, JSON.stringify(quiz.questions)],
+      );
+    }
+  }
 
   globalForDb.__quiz_db_init = true;
 }

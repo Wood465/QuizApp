@@ -1,7 +1,7 @@
-﻿import bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { initDb, pool } from "../_lib/db.js";
 import { signToken } from "../_lib/jwt.js";
-import { json, parseBody, toPublicUser } from "../_lib/http.js";
+import { json, parseBody, setAuthCookie, toPublicUser } from "../_lib/http.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -36,5 +36,7 @@ export default async function handler(req, res) {
     return json(res, 401, { message: "Invalid email or password." });
   }
 
-  return json(res, 200, { token: signToken(user), user: toPublicUser(user) });
+  const token = signToken(user);
+  setAuthCookie(res, token);
+  return json(res, 200, { user: toPublicUser(user) });
 }

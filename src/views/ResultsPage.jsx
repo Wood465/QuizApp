@@ -1,9 +1,9 @@
-﻿import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { useQuiz } from "../context/QuizContext";
 
 function ResultsPage() {
   const { currentUser } = useAuth();
-  const { results } = useQuiz();
+  const { results, loading } = useQuiz();
 
   const myResults = results.filter((item) => item.userId === currentUser.id);
 
@@ -13,7 +13,9 @@ function ResultsPage() {
         <h1>Rezultati</h1>
         <p className="muted">Pregled vseh rešenih kvizov in dosežkov.</p>
 
-        {myResults.length === 0 ? (
+        {loading ? (
+          <p className="muted">Nalagam rezultate...</p>
+        ) : myResults.length === 0 ? (
           <p className="muted">Še nimaš rezultatov. Začni prvi kviz.</p>
         ) : (
           <div className="table-wrap">
@@ -47,3 +49,4 @@ function ResultsPage() {
 }
 
 export default ResultsPage;
+

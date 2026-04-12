@@ -1,10 +1,8 @@
-﻿import { useMemo, useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useMemo, useState } from "react";
 import { useQuiz } from "../context/QuizContext";
 
 function QuizzesPage() {
-  const { currentUser } = useAuth();
-  const { quizzes, submitQuiz } = useQuiz();
+  const { quizzes, submitQuiz, loading } = useQuiz();
 
   const [selectedQuizId, setSelectedQuizId] = useState("");
   const [answers, setAnswers] = useState({});
@@ -23,7 +21,7 @@ function QuizzesPage() {
     setNotice("");
   };
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     if (!selectedQuiz) {
       return;
@@ -38,8 +36,7 @@ function QuizzesPage() {
       Number(answers[question.id]),
     );
 
-    const result = submitQuiz({
-      userId: currentUser.id,
+    const result = await submitQuiz({
       quizId: selectedQuiz.id,
       answers: normalizedAnswers,
     });
@@ -61,6 +58,8 @@ function QuizzesPage() {
       <article className="card">
         <h1>Kvizi</h1>
         <p className="muted">Izberi kviz, odgovori na vprašanja in oddaj rezultat.</p>
+
+        {loading ? <p className="muted">Nalagam kvize...</p> : null}
 
         <div className="quiz-list">
           {quizzes.map((quiz) => (

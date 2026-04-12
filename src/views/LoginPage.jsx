@@ -1,9 +1,9 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function LoginPage() {
-  const { login, loginWithGoogle, loginWithToken, configError } = useAuth();
+  const { login, loginWithGoogle, configError, isAuthenticated, authReady } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -15,34 +15,18 @@ function LoginPage() {
   const redirectPath = location.state?.from?.pathname || "/dashboard";
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get("token");
-    const next = params.get("next") || redirectPath;
-    const errorCode = params.get("error");
-
-    if (errorCode) {
-      setError("Google prijava ni uspela.");
-      return;
-    }
-
-    if (!token) {
-      return;
-    }
-
-    const applyToken = async () => {
-      setIsLoading(true);
-      const result = await loginWithToken(token);
-      setIsLoading(false);
-
-      if (!result.ok) {
-        setError(result.message);
-        return;
-      }
-
+    if (authReady && isAuthenticated) {
+      const params = new URLSearchParams(location.search);
+      const next = params.get("next") || redirectPath;
       navigate(next, { replace: true });
-    };
+    }
+  }, [authReady, isAuthenticated, location.search]);
 
-    applyToken();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("error")) {
+      setError("Google prijava ni uspela.");
+    }
   }, [location.search]);
 
   const submit = async (event) => {

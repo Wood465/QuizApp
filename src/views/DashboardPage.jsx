@@ -1,10 +1,10 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useQuiz } from "../context/QuizContext";
 
 function DashboardPage() {
   const { currentUser } = useAuth();
-  const { quizzes, results } = useQuiz();
+  const { quizzes, results, loading } = useQuiz();
 
   const myResults = results.filter((item) => item.userId === currentUser.id);
   const solved = myResults.length;
@@ -27,6 +27,7 @@ function DashboardPage() {
           Nadaljuj z učenjem. Na voljo imaš {quizzes.length} kvizov različnih tem
           in težavnosti.
         </p>
+        {loading ? <p className="muted">Nalagam podatke...</p> : null}
         <div className="hero-actions">
           <Link className="btn primary" to="/quizzes">
             Rešuj kvize
@@ -63,3 +64,4 @@ function DashboardPage() {
 }
 
 export default DashboardPage;
+

@@ -1,7 +1,7 @@
-﻿import { OAuth2Client } from "google-auth-library";
+import { OAuth2Client } from "google-auth-library";
 import { initDb, pool } from "../../_lib/db.js";
 import { signToken } from "../../_lib/jwt.js";
-import { normalizeFrontendOrigin, normalizeNext } from "../../_lib/http.js";
+import { normalizeFrontendOrigin, normalizeNext, setAuthCookie } from "../../_lib/http.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -73,14 +73,15 @@ export default async function handler(req, res) {
      DO UPDATE SET
        name = EXCLUDED.name,
        provider = 'google',
-       role = users.role
+       role = CASE
+         WHEN users.role = 'admin' OR EXCLUDED.role = 'admin' THEN 'admin'
+         ELSE users.role
+       END
      RETURNING id, name, email, role, provider`,
     [name, email, role],
   );
 
   const user = upserted.rows[0];
-  const token = signToken(user);
-  return res.redirect(
-    `${frontendLoginUrl}?token=${encodeURIComponent(token)}&next=${encodeURIComponent(nextPath)}`,
-  );
+  setAuthCookie(res, signToken(user));
+  return res.redirect(`${resolvedFrontend}${nextPath}`);
 }

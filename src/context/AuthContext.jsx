@@ -1,10 +1,8 @@
-﻿import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { apiRequest, getStoredToken, setStoredToken } from "../lib/api";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { apiRequest } from "../lib/api";
 
 const AuthContext = createContext(null);
-const API_BASE =
-  import.meta.env.VITE_API_URL ||
-  "";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export function AuthProvider({ children }) {
   const [users, setUsers] = useState([]);
@@ -12,18 +10,10 @@ export function AuthProvider({ children }) {
   const [authReady, setAuthReady] = useState(false);
 
   const loadCurrentUser = async () => {
-    const token = getStoredToken();
-    if (!token) {
-      setCurrentUser(null);
-      setAuthReady(true);
-      return;
-    }
-
     try {
       const data = await apiRequest("/api/auth/me");
       setCurrentUser(data.user || null);
     } catch {
-      setStoredToken("");
       setCurrentUser(null);
     } finally {
       setAuthReady(true);
@@ -59,7 +49,6 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ name, email, password }),
       });
 
-      setStoredToken(data.token || "");
       setCurrentUser(data.user || null);
       return { ok: true };
     } catch (error) {
@@ -74,7 +63,6 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ email, password }),
       });
 
-      setStoredToken(data.token || "");
       setCurrentUser(data.user || null);
       return { ok: true };
     } catch (error) {
@@ -90,25 +78,12 @@ export function AuthProvider({ children }) {
     )}&frontend=${frontend}`;
   };
 
-  const loginWithToken = async (token) => {
-    if (!token) {
-      return { ok: false, message: "Missing token." };
-    }
-
-    try {
-      setStoredToken(token);
-      const data = await apiRequest("/api/auth/me");
-      setCurrentUser(data.user || null);
-      return { ok: true };
-    } catch {
-      setStoredToken("");
-      setCurrentUser(null);
-      return { ok: false, message: "Google prijava ni uspela." };
-    }
-  };
-
   const logout = async () => {
-    setStoredToken("");
+    try {
+      await apiRequest("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    }
     setCurrentUser(null);
     setUsers([]);
   };
@@ -118,7 +93,6 @@ export function AuthProvider({ children }) {
       await apiRequest(`/api/users/${userId}`, { method: "DELETE" });
       setUsers((prev) => prev.filter((item) => item.id !== userId));
       if (currentUser?.id === userId) {
-        setStoredToken("");
         setCurrentUser(null);
       }
       return { ok: true };
@@ -134,9 +108,6 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ name, email, password }),
       });
 
-      if (data.token) {
-        setStoredToken(data.token);
-      }
       setCurrentUser(data.user || null);
       return { ok: true };
     } catch (error) {
@@ -154,7 +125,6 @@ export function AuthProvider({ children }) {
       register,
       login,
       loginWithGoogle,
-      loginWithToken,
       logout,
       deleteUser,
       updateProfile,
@@ -172,4 +142,3 @@ export function useAuth() {
   }
   return context;
 }
-

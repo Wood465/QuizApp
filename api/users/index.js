@@ -1,4 +1,4 @@
-﻿import { initDb, pool } from "../_lib/db.js";
+import { initDb, pool } from "../_lib/db.js";
 import { getAuthUser, json, toPublicUser } from "../_lib/http.js";
 
 export default async function handler(req, res) {

@@ -1,4 +1,4 @@
-﻿import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 

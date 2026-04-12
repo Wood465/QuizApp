@@ -13,7 +13,30 @@ const app = express();
 const port = Number(process.env.PORT || 4000);
 const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || "http://localhost:5173";
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173" }));
+const allowedOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
+app.use(
+  cors({
+    origin: allowedOrigin,
+    credentials: true,
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  }),
+);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && origin === allowedOrigin) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Vary", "Origin");
+  }
+  if (req.method === "OPTIONS") {
+    res.header(
+      "Access-Control-Allow-Headers",
+      req.headers["access-control-request-headers"] || "Content-Type, Authorization",
+    );
+    return res.sendStatus(204);
+  }
+  return next();
+});
 app.use(express.json());
 
 function toPublicUser(user) {
@@ -26,9 +49,59 @@ function toPublicUser(user) {
   };
 }
 
+function parseCookies(req) {
+  const raw = req.headers.cookie || "";
+  const out = {};
+
+  raw.split(";").forEach((chunk) => {
+    const [k, ...rest] = chunk.trim().split("=");
+    if (!k) {
+      return;
+    }
+    out[k] = decodeURIComponent(rest.join("=") || "");
+  });
+
+  return out;
+}
+
+function setAuthCookie(res, token) {
+  const isProd = process.env.NODE_ENV === "production";
+  const cookie = [
+    `auth_token=${encodeURIComponent(token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    isProd ? "Secure" : "",
+    "Max-Age=604800",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  res.setHeader("Set-Cookie", cookie);
+}
+
+function clearAuthCookie(res) {
+  const isProd = process.env.NODE_ENV === "production";
+  const cookie = [
+    "auth_token=",
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    isProd ? "Secure" : "",
+    "Max-Age=0",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  res.setHeader("Set-Cookie", cookie);
+}
+
 async function getAuthUser(req) {
   const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const headerToken = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const cookieToken = parseCookies(req).auth_token || null;
+  const token = headerToken || cookieToken;
+
   if (!token) {
     return null;
   }
@@ -105,7 +178,8 @@ app.post("/api/auth/register", async (req, res) => {
   );
 
   const user = created.rows[0];
-  return res.status(201).json({ token: signToken(user), user: toPublicUser(user) });
+  setAuthCookie(res, signToken(user));
+  return res.status(201).json({ user: toPublicUser(user) });
 });
 
 app.post("/api/auth/login", async (req, res) => {
@@ -135,7 +209,13 @@ app.post("/api/auth/login", async (req, res) => {
     return res.status(401).json({ message: "Invalid email or password." });
   }
 
-  return res.json({ token: signToken(user), user: toPublicUser(user) });
+  setAuthCookie(res, signToken(user));
+  return res.json({ user: toPublicUser(user) });
+});
+
+app.post("/api/auth/logout", (_req, res) => {
+  clearAuthCookie(res);
+  return res.json({ ok: true });
 });
 
 app.get("/api/auth/google/start", async (req, res) => {
@@ -170,10 +250,9 @@ app.get("/api/auth/google/callback", async (req, res) => {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || "";
   let resolvedFrontend = frontendUrl;
-  let frontendLoginUrl = `${resolvedFrontend}/login`;
 
   if (!clientId || !clientSecret || !redirectUri) {
-    return res.redirect(`${frontendLoginUrl}?error=google_config`);
+    return res.redirect(`${resolvedFrontend}/login?error=google_config`);
   }
 
   const code = req.query.code || "";
@@ -187,7 +266,8 @@ app.get("/api/auth/google/callback", async (req, res) => {
   } catch {
     nextPath = "/dashboard";
   }
-  frontendLoginUrl = `${resolvedFrontend}/login`;
+
+  const frontendLoginUrl = `${resolvedFrontend}/login`;
 
   if (!code) {
     return res.redirect(`${frontendLoginUrl}?error=google_code`);
@@ -226,16 +306,17 @@ app.get("/api/auth/google/callback", async (req, res) => {
      DO UPDATE SET
        name = EXCLUDED.name,
        provider = 'google',
-       role = users.role
+       role = CASE
+         WHEN users.role = 'admin' OR EXCLUDED.role = 'admin' THEN 'admin'
+         ELSE users.role
+       END
      RETURNING id, name, email, role, provider`,
     [name, email, role],
   );
 
   const user = upserted.rows[0];
-  const token = signToken(user);
-  return res.redirect(
-    `${frontendLoginUrl}?token=${encodeURIComponent(token)}&next=${encodeURIComponent(nextPath)}`,
-  );
+  setAuthCookie(res, signToken(user));
+  return res.redirect(`${resolvedFrontend}${nextPath}`);
 });
 
 app.get("/api/auth/me", async (req, res) => {
@@ -293,7 +374,196 @@ app.put("/api/auth/profile", async (req, res) => {
   );
 
   const user = updated.rows[0];
-  return res.json({ token: signToken(user), user: toPublicUser(user) });
+  setAuthCookie(res, signToken(user));
+  return res.json({ user: toPublicUser(user) });
+});
+
+app.get("/api/quizzes", async (_req, res) => {
+  const rows = await pool.query(
+    "SELECT id, title, topic, difficulty, questions FROM quizzes ORDER BY created_at ASC",
+  );
+
+  const quizzes = rows.rows.map((q) => ({
+    id: q.id,
+    title: q.title,
+    topic: q.topic,
+    difficulty: q.difficulty,
+    questions: q.questions,
+  }));
+
+  return res.json({ quizzes });
+});
+
+app.post("/api/quizzes", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  if (!authUser) {
+    return res.status(401).json({ message: "Invalid or expired token." });
+  }
+  if (authUser.role !== "admin") {
+    return res.status(403).json({ message: "Admin access required." });
+  }
+
+  const title = (req.body.title || "").trim();
+  const topic = (req.body.topic || "").trim();
+  const difficulty = (req.body.difficulty || "easy").trim();
+  const questions = Array.isArray(req.body.questions) ? req.body.questions : [];
+
+  if (!title || !topic || questions.length === 0) {
+    return res.status(400).json({ message: "Invalid quiz payload." });
+  }
+
+  const id = req.body.id || crypto.randomUUID();
+
+  const created = await pool.query(
+    `INSERT INTO quizzes (id, title, topic, difficulty, questions)
+     VALUES ($1, $2, $3, $4, $5::jsonb)
+     RETURNING id, title, topic, difficulty, questions`,
+    [id, title, topic, difficulty, JSON.stringify(questions)],
+  );
+
+  return res.status(201).json({ quiz: created.rows[0] });
+});
+
+app.put("/api/quizzes/:id", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  if (!authUser) {
+    return res.status(401).json({ message: "Invalid or expired token." });
+  }
+  if (authUser.role !== "admin") {
+    return res.status(403).json({ message: "Admin access required." });
+  }
+
+  const title = (req.body.title || "").trim();
+  const topic = (req.body.topic || "").trim();
+  const difficulty = (req.body.difficulty || "easy").trim();
+  const questions = Array.isArray(req.body.questions) ? req.body.questions : [];
+
+  if (!title || !topic || questions.length === 0) {
+    return res.status(400).json({ message: "Invalid quiz payload." });
+  }
+
+  const updated = await pool.query(
+    `UPDATE quizzes
+     SET title = $1,
+         topic = $2,
+         difficulty = $3,
+         questions = $4::jsonb
+     WHERE id = $5
+     RETURNING id, title, topic, difficulty, questions`,
+    [title, topic, difficulty, JSON.stringify(questions), req.params.id],
+  );
+
+  if (!updated.rowCount) {
+    return res.status(404).json({ message: "Quiz not found." });
+  }
+
+  return res.json({ quiz: updated.rows[0] });
+});
+
+app.delete("/api/quizzes/:id", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  if (!authUser) {
+    return res.status(401).json({ message: "Invalid or expired token." });
+  }
+  if (authUser.role !== "admin") {
+    return res.status(403).json({ message: "Admin access required." });
+  }
+
+  const deleted = await pool.query("DELETE FROM quizzes WHERE id = $1 RETURNING id", [req.params.id]);
+  if (!deleted.rowCount) {
+    return res.status(404).json({ message: "Quiz not found." });
+  }
+
+  return res.json({ ok: true });
+});
+
+app.get("/api/results", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  if (!authUser) {
+    return res.status(401).json({ message: "Invalid or expired token." });
+  }
+
+  const rows = await pool.query(
+    `SELECT id, user_id, quiz_id, quiz_title, score, total, percentage, created_at
+     FROM results
+     WHERE user_id = $1
+     ORDER BY created_at DESC`,
+    [authUser.id],
+  );
+
+  const results = rows.rows.map((r) => ({
+    id: r.id,
+    userId: r.user_id,
+    quizId: r.quiz_id,
+    quizTitle: r.quiz_title,
+    score: r.score,
+    total: r.total,
+    percentage: r.percentage,
+    createdAt: r.created_at,
+  }));
+
+  return res.json({ results });
+});
+
+app.post("/api/results/submit", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  if (!authUser) {
+    return res.status(401).json({ message: "Invalid or expired token." });
+  }
+
+  const quizId = req.body.quizId;
+  const answers = Array.isArray(req.body.answers) ? req.body.answers.map((x) => Number(x)) : [];
+
+  if (!quizId || !answers.length) {
+    return res.status(400).json({ message: "Invalid payload." });
+  }
+
+  const quizResult = await pool.query(
+    "SELECT id, title, questions FROM quizzes WHERE id = $1 LIMIT 1",
+    [quizId],
+  );
+
+  if (!quizResult.rowCount) {
+    return res.status(404).json({ message: "Quiz does not exist." });
+  }
+
+  const quiz = quizResult.rows[0];
+  const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
+
+  if (answers.length !== questions.length) {
+    return res.status(400).json({ message: "Answer count mismatch." });
+  }
+
+  let score = 0;
+  questions.forEach((question, idx) => {
+    if (Number(answers[idx]) === Number(question.answerIndex)) {
+      score += 1;
+    }
+  });
+
+  const total = questions.length;
+  const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
+
+  const inserted = await pool.query(
+    `INSERT INTO results (user_id, quiz_id, quiz_title, score, total, percentage)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, user_id, quiz_id, quiz_title, score, total, percentage, created_at`,
+    [authUser.id, quiz.id, quiz.title, score, total, percentage],
+  );
+
+  const row = inserted.rows[0];
+  const entry = {
+    id: row.id,
+    userId: row.user_id,
+    quizId: row.quiz_id,
+    quizTitle: row.quiz_title,
+    score: row.score,
+    total: row.total,
+    percentage: row.percentage,
+    createdAt: row.created_at,
+  };
+
+  return res.json({ entry });
 });
 
 app.get("/api/users", async (req, res) => {

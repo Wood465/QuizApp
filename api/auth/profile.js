@@ -1,7 +1,7 @@
-﻿import bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { initDb, pool } from "../_lib/db.js";
 import { signToken } from "../_lib/jwt.js";
-import { getAuthUser, json, parseBody, toPublicUser } from "../_lib/http.js";
+import { getAuthUser, json, parseBody, setAuthCookie, toPublicUser } from "../_lib/http.js";
 
 export default async function handler(req, res) {
   if (req.method !== "PUT") {
@@ -55,5 +55,6 @@ export default async function handler(req, res) {
   );
 
   const user = updated.rows[0];
-  return json(res, 200, { token: signToken(user), user: toPublicUser(user) });
+  setAuthCookie(res, signToken(user));
+  return json(res, 200, { user: toPublicUser(user) });
 }

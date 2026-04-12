@@ -1,4 +1,4 @@
-﻿import { OAuth2Client } from "google-auth-library";
+import { OAuth2Client } from "google-auth-library";
 import { initDb } from "../../_lib/db.js";
 import { normalizeFrontendOrigin, normalizeNext } from "../../_lib/http.js";
 

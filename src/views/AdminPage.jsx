@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useQuiz } from "../context/QuizContext";
 
@@ -24,7 +24,7 @@ function parseQuestions(rawQuestions) {
 }
 
 function AdminPage() {
-  const { quizzes, addQuiz, updateQuiz, deleteQuiz } = useQuiz();
+  const { quizzes, addQuiz, updateQuiz, deleteQuiz, loading } = useQuiz();
   const { users, currentUser, deleteUser } = useAuth();
 
   const [editingId, setEditingId] = useState(null);
@@ -33,7 +33,11 @@ function AdminPage() {
   const [difficulty, setDifficulty] = useState("easy");
   const [questions, setQuestions] = useState([initialQuestion]);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [userNotice, setUserNotice] = useState("");
+  const [isSavingQuiz, setIsSavingQuiz] = useState(false);
+  const [deletingQuizId, setDeletingQuizId] = useState(null);
+  const [deletingUserId, setDeletingUserId] = useState(null);
 
   const resetForm = () => {
     setEditingId(null);
@@ -57,11 +61,26 @@ function AdminPage() {
       })),
     );
     setError("");
+    setNotice("");
   };
 
-  const saveQuiz = (event) => {
+  const addQuestionRow = () => {
+    setQuestions((prev) => [...prev, { ...initialQuestion }]);
+  };
+
+  const removeQuestionRow = (index) => {
+    setQuestions((prev) => {
+      if (prev.length <= 1) {
+        return prev;
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const saveQuiz = async (event) => {
     event.preventDefault();
     setError("");
+    setNotice("");
 
     const parsedQuestions = parseQuestions(questions);
     if (!title.trim() || !topic.trim()) {
@@ -80,13 +99,21 @@ function AdminPage() {
       questions: parsedQuestions,
     };
 
-    if (editingId) {
-      updateQuiz(editingId, payload);
-    } else {
-      addQuiz(payload);
+    setIsSavingQuiz(true);
+    try {
+      if (editingId) {
+        await updateQuiz(editingId, payload);
+        setNotice("Kviz je bil uspešno posodobljen.");
+      } else {
+        await addQuiz(payload);
+        setNotice("Kviz je bil uspešno dodan.");
+      }
+      resetForm();
+    } catch (apiError) {
+      setError(apiError.message || "Shranjevanje kviza ni uspelo.");
+    } finally {
+      setIsSavingQuiz(false);
     }
-
-    resetForm();
   };
 
   const handleDeleteUser = async (user) => {
@@ -95,7 +122,10 @@ function AdminPage() {
       return;
     }
 
+    setDeletingUserId(user.id);
     const result = await deleteUser(user.id);
+    setDeletingUserId(null);
+
     if (!result.ok) {
       setUserNotice(result.message);
       return;
@@ -114,16 +144,25 @@ function AdminPage() {
       <article className="card">
         <h1>Admin upravljanje kvizov</h1>
         <p className="muted">Dodajanje, urejanje in brisanje kvizov.</p>
+        {loading ? <p className="muted">Nalagam kvize iz baze...</p> : null}
 
         <form className="form-stack" onSubmit={saveQuiz}>
           <label>
             Naslov kviza
-            <input value={title} onChange={(event) => setTitle(event.target.value)} />
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              disabled={isSavingQuiz}
+            />
           </label>
 
           <label>
             Tema
-            <input value={topic} onChange={(event) => setTopic(event.target.value)} />
+            <input
+              value={topic}
+              onChange={(event) => setTopic(event.target.value)}
+              disabled={isSavingQuiz}
+            />
           </label>
 
           <label>
@@ -131,6 +170,7 @@ function AdminPage() {
             <select
               value={difficulty}
               onChange={(event) => setDifficulty(event.target.value)}
+              disabled={isSavingQuiz}
             >
               <option value="easy">easy</option>
               <option value="medium">medium</option>
@@ -152,6 +192,7 @@ function AdminPage() {
                       ),
                     )
                   }
+                  disabled={isSavingQuiz}
                 />
               </label>
               <label>
@@ -165,6 +206,7 @@ function AdminPage() {
                       ),
                     )
                   }
+                  disabled={isSavingQuiz}
                 />
               </label>
               <label>
@@ -182,8 +224,19 @@ function AdminPage() {
                       ),
                     )
                   }
+                  disabled={isSavingQuiz}
                 />
               </label>
+              <div className="hero-actions">
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => removeQuestionRow(index)}
+                  disabled={isSavingQuiz || questions.length <= 1}
+                >
+                  Odstrani vprašanje
+                </button>
+              </div>
             </div>
           ))}
 
@@ -191,33 +244,39 @@ function AdminPage() {
             <button
               type="button"
               className="btn secondary"
-              onClick={() =>
-                setQuestions((prev) => [...prev, { text: "", options: "", answerIndex: 0 }])
-              }
+              onClick={addQuestionRow}
+              disabled={isSavingQuiz}
             >
               Dodaj vprašanje
             </button>
             <button
               type="button"
               className="btn secondary"
-              onClick={() =>
-                setQuestions((prev) =>
-                  prev.length > 1 ? prev.slice(0, prev.length - 1) : prev,
-                )
-              }
+              onClick={() => removeQuestionRow(questions.length - 1)}
+              disabled={isSavingQuiz || questions.length <= 1}
             >
               Odstrani zadnje
             </button>
           </div>
 
           {error ? <p className="error-text">{error}</p> : null}
+          {notice ? <p className="notice-text">{notice}</p> : null}
 
           <div className="hero-actions">
-            <button className="btn primary" type="submit">
-              {editingId ? "Shrani spremembe" : "Dodaj kviz"}
+            <button className="btn primary" type="submit" disabled={isSavingQuiz}>
+              {isSavingQuiz
+                ? "Shranjujem..."
+                : editingId
+                  ? "Shrani spremembe"
+                  : "Dodaj kviz"}
             </button>
             {editingId ? (
-              <button type="button" className="btn secondary" onClick={resetForm}>
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={resetForm}
+                disabled={isSavingQuiz}
+              >
                 Prekliči urejanje
               </button>
             ) : null}
@@ -227,30 +286,56 @@ function AdminPage() {
 
       <article className="card">
         <h2>Obstoječi kvizi</h2>
-        <div className="quiz-list">
-          {quizzes.map((quiz) => (
-            <div className="quiz-item" key={quiz.id}>
-              <div>
-                <h3>{quiz.title}</h3>
-                <p className="muted">
-                  {quiz.topic} | {quiz.difficulty} | {quiz.questions.length} vprašanj
-                </p>
+        {quizzes.length === 0 ? (
+          <p className="muted">Trenutno ni nobenega kviza v bazi.</p>
+        ) : (
+          <div className="quiz-list">
+            {quizzes.map((quiz) => (
+              <div className="quiz-item" key={quiz.id}>
+                <div>
+                  <h3>{quiz.title}</h3>
+                  <p className="muted">
+                    {quiz.topic} | {quiz.difficulty} | {quiz.questions.length} vprašanj
+                  </p>
+                </div>
+                <div className="hero-actions">
+                  <button type="button" className="btn secondary" onClick={() => startEdit(quiz)}>
+                    Uredi
+                  </button>
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    disabled={deletingQuizId === quiz.id}
+                    onClick={async () => {
+                      const confirmed = window.confirm(
+                        `Ali želiš izbrisati kviz \"${quiz.title}\"?`,
+                      );
+                      if (!confirmed) {
+                        return;
+                      }
+                      setDeletingQuizId(quiz.id);
+                      setError("");
+                      setNotice("");
+                      try {
+                        await deleteQuiz(quiz.id);
+                        setNotice("Kviz je bil uspešno izbrisan.");
+                        if (editingId === quiz.id) {
+                          resetForm();
+                        }
+                      } catch (apiError) {
+                        setError(apiError.message || "Brisanje kviza ni uspelo.");
+                      } finally {
+                        setDeletingQuizId(null);
+                      }
+                    }}
+                  >
+                    {deletingQuizId === quiz.id ? "Brišem..." : "Briši"}
+                  </button>
+                </div>
               </div>
-              <div className="hero-actions">
-                <button type="button" className="btn secondary" onClick={() => startEdit(quiz)}>
-                  Uredi
-                </button>
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={() => deleteQuiz(quiz.id)}
-                >
-                  Briši
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </article>
 
       <article className="card">
@@ -270,9 +355,10 @@ function AdminPage() {
               <button
                 type="button"
                 className="btn secondary"
+                disabled={deletingUserId === user.id}
                 onClick={() => handleDeleteUser(user)}
               >
-                Briši uporabnika
+                {deletingUserId === user.id ? "Brišem..." : "Briši uporabnika"}
               </button>
             </div>
           ))}

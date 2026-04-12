@@ -1,4 +1,4 @@
-﻿export const defaultQuizzes = [
+export const defaultQuizzes = [
   {
     id: "quiz-html-1",
     title: "Osnove HTML",
@@ -19,7 +19,7 @@
       },
       {
         id: "q3",
-        text: "Kateri atribut slike doloca alternativni opis?",
+        text: "Kateri atribut slike določa alternativni opis?",
         options: ["title", "src", "alt", "desc"],
         answerIndex: 2,
       },
@@ -39,7 +39,7 @@
       },
       {
         id: "q2",
-        text: "Katera metoda ustvari nov array in ne spremeni obstojecega?",
+        text: "Katera metoda ustvari nov array in ne spremeni obstoječega?",
         options: ["push", "splice", "map", "pop"],
         answerIndex: 2,
       },
@@ -54,7 +54,7 @@
   {
     id: "quiz-math-1",
     title: "Matematika in logika",
-    topic: "Splosno znanje",
+    topic: "Splošno znanje",
     difficulty: "hard",
     questions: [
       {
@@ -71,7 +71,7 @@
       },
       {
         id: "q3",
-        text: "Ce je A res in B ni res, kateri izraz je resnicen?",
+        text: "Če je A res in B ni res, kateri izraz je resničen?",
         options: ["A in B", "A ali B", "ne A", "B"],
         answerIndex: 1,
       },

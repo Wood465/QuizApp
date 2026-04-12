@@ -1,9 +1,9 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function SignupPage() {
-  const { register, loginWithGoogle, loginWithToken, configError } = useAuth();
+  const { register, loginWithGoogle, configError, isAuthenticated, authReady } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -13,36 +13,19 @@ function SignupPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    if (authReady && isAuthenticated) {
+      const params = new URLSearchParams(location.search);
+      const next = params.get("next") || "/dashboard";
+      navigate(next, { replace: true });
+    }
+  }, [authReady, isAuthenticated, location.search]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const token = params.get("token");
-    const next = params.get("next") || "/dashboard";
-    const errorCode = params.get("error");
-
-    if (errorCode) {
+    if (params.get("error")) {
       setError("Google prijava ni uspela.");
-      return;
     }
-
-    if (!token) {
-      return;
-    }
-
-    const applyToken = async () => {
-      setIsLoading(true);
-      const result = await loginWithToken(token);
-      setIsLoading(false);
-
-      if (!result.ok) {
-        setError(result.message);
-        return;
-      }
-
-      navigate(next, { replace: true });
-    };
-
-    applyToken();
   }, [location.search]);
 
   const submit = async (event) => {
