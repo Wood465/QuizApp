@@ -82,9 +82,10 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = ({ nextPath = "/dashboard" } = {}) => {
     const safeNext = nextPath.startsWith("/") ? nextPath : "/dashboard";
+    const frontend = encodeURIComponent(window.location.origin);
     window.location.href = `${API_BASE}/api/auth/google/start?next=${encodeURIComponent(
       safeNext,
-    )}`;
+    )}&frontend=${frontend}`;
   };
 
   const loginWithToken = async (token) => {

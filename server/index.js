@@ -55,6 +55,22 @@ function normalizeNext(nextPath, fallback = "/dashboard") {
   return nextPath;
 }
 
+function normalizeFrontendOrigin(origin, fallback) {
+  if (!origin || typeof origin !== "string") {
+    return fallback;
+  }
+
+  try {
+    const parsed = new URL(origin);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return fallback;
+    }
+    return parsed.origin;
+  } catch {
+    return fallback;
+  }
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
@@ -132,7 +148,10 @@ app.get("/api/auth/google/start", async (req, res) => {
   }
 
   const nextPath = normalizeNext(req.query.next, "/dashboard");
-  const state = Buffer.from(JSON.stringify({ nextPath }), "utf8").toString("base64url");
+  const frontendOrigin = normalizeFrontendOrigin(req.query.frontend, frontendUrl);
+  const state = Buffer.from(JSON.stringify({ nextPath, frontendOrigin }), "utf8").toString(
+    "base64url",
+  );
 
   const oauth = new OAuth2Client(clientId, clientSecret, redirectUri);
   const url = oauth.generateAuthUrl({
@@ -150,7 +169,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID || "";
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || "";
-  const frontendLoginUrl = `${frontendUrl}/login`;
+  let resolvedFrontend = frontendUrl;
 
   if (!clientId || !clientSecret || !redirectUri) {
     return res.redirect(`${frontendLoginUrl}?error=google_config`);
@@ -163,9 +182,11 @@ app.get("/api/auth/google/callback", async (req, res) => {
   try {
     const parsed = JSON.parse(Buffer.from(rawState, "base64url").toString("utf8"));
     nextPath = normalizeNext(parsed?.nextPath, "/dashboard");
+    resolvedFrontend = normalizeFrontendOrigin(parsed?.frontendOrigin, frontendUrl);
   } catch {
     nextPath = "/dashboard";
   }
+  const frontendLoginUrl = `${resolvedFrontend}/login`;
 
   if (!code) {
     return res.redirect(`${frontendLoginUrl}?error=google_code`);
