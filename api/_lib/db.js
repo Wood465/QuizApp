@@ -64,8 +64,14 @@ export async function initDb() {
       score INTEGER NOT NULL,
       total INTEGER NOT NULL,
       percentage INTEGER NOT NULL,
+      review JSONB NOT NULL DEFAULT '[]'::jsonb,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE results
+    ADD COLUMN IF NOT EXISTS review JSONB NOT NULL DEFAULT '[]'::jsonb;
   `);
 
   await pool.query(`
@@ -94,18 +100,13 @@ export async function initDb() {
     EXECUTE FUNCTION set_updated_at();
   `);
 
-  const quizCountResult = await pool.query("SELECT COUNT(*)::int AS count FROM quizzes");
-  const quizCount = quizCountResult.rows[0]?.count || 0;
-
-  if (quizCount === 0) {
-    for (const quiz of defaultQuizzes) {
-      await pool.query(
-        `INSERT INTO quizzes (id, title, topic, difficulty, questions)
-         VALUES ($1, $2, $3, $4, $5::jsonb)
-         ON CONFLICT (id) DO NOTHING`,
-        [quiz.id, quiz.title, quiz.topic, quiz.difficulty, JSON.stringify(quiz.questions)],
-      );
-    }
+  for (const quiz of defaultQuizzes) {
+    await pool.query(
+      `INSERT INTO quizzes (id, title, topic, difficulty, questions)
+       VALUES ($1, $2, $3, $4, $5::jsonb)
+       ON CONFLICT (id) DO NOTHING`,
+      [quiz.id, quiz.title, quiz.topic, quiz.difficulty, JSON.stringify(quiz.questions)],
+    );
   }
 
   globalForDb.__quiz_db_init = true;

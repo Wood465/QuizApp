@@ -26,8 +26,7 @@ function DashboardPage() {
         <p className="muted">
           Nadaljuj z učenjem. Na voljo imaš {quizzes.length} kvizov različnih tem
           in težavnosti.
-        </p>
-        {loading ? <p className="muted">Nalagam podatke...</p> : null}
+        </p>     
         <div className="hero-actions">
           <Link className="btn primary" to="/quizzes">
             Rešuj kvize
@@ -36,6 +35,7 @@ function DashboardPage() {
             Poglej rezultate
           </Link>
         </div>
+        {loading ? <p className="muted">Nalagam podatke...</p> : null}
       </article>
 
       <article className="card">

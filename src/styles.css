@@ -322,6 +322,18 @@ select {
   gap: 10px;
 }
 
+.quiz-filters {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 14px;
+  max-width: 320px;
+}
+
+.quiz-filters label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
 .quiz-item {
   display: flex;
   justify-content: space-between;
@@ -376,6 +388,70 @@ select {
 
 .question-box .radio-row span {
   line-height: 1.35;
+}
+
+.review-list {
+  display: grid;
+  gap: 10px;
+}
+
+.results-history {
+  display: grid;
+  gap: 12px;
+}
+
+.results-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.review-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.review-item h3 {
+  margin-bottom: 8px;
+}
+
+.review-item-correct {
+  border-color: #b7e4c7;
+  background: #f5fff8;
+}
+
+.review-item-wrong {
+  border-color: #fecdd3;
+  background: #fff7f7;
+}
+
+.review-answer {
+  margin: 6px 0;
+}
+
+.review-answer-wrong {
+  color: #9f1239;
+}
+
+.review-answer-correct {
+  color: #166534;
+}
+
+.review-status {
+  margin: 6px 0 0;
+  font-weight: 700;
+}
+
+.review-status-correct {
+  color: #166534;
+}
+
+.review-status-wrong {
+  color: #9f1239;
 }
 
 .table-wrap {

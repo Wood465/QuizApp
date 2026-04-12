@@ -37,20 +37,35 @@ export default async function handler(req, res) {
   }
 
   let score = 0;
-  questions.forEach((question, idx) => {
-    if (Number(answers[idx]) === Number(question.answerIndex)) {
+  const review = questions.map((question, idx) => {
+    const selectedIndex = Number(answers[idx]);
+    const correctIndex = Number(question.answerIndex);
+    const options = Array.isArray(question.options) ? question.options : [];
+    const isCorrect = selectedIndex === correctIndex;
+
+    if (isCorrect) {
       score += 1;
     }
+
+    return {
+      questionId: question.id || `q-${idx + 1}`,
+      text: question.text || "",
+      selectedIndex,
+      selectedOption: options[selectedIndex] ?? "Odgovor ni bil izbran.",
+      correctIndex,
+      correctOption: options[correctIndex] ?? "Pravilen odgovor ni nastavljen.",
+      isCorrect,
+    };
   });
 
   const total = questions.length;
   const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
 
   const inserted = await pool.query(
-    `INSERT INTO results (user_id, quiz_id, quiz_title, score, total, percentage)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING id, user_id, quiz_id, quiz_title, score, total, percentage, created_at`,
-    [authUser.id, quiz.id, quiz.title, score, total, percentage],
+    `INSERT INTO results (user_id, quiz_id, quiz_title, score, total, percentage, review)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+     RETURNING id, user_id, quiz_id, quiz_title, score, total, percentage, review, created_at`,
+    [authUser.id, quiz.id, quiz.title, score, total, percentage, JSON.stringify(review)],
   );
 
   const row = inserted.rows[0];
@@ -62,6 +77,7 @@ export default async function handler(req, res) {
     score: row.score,
     total: row.total,
     percentage: row.percentage,
+    review: Array.isArray(row.review) ? row.review : [],
     createdAt: row.created_at,
   };
 

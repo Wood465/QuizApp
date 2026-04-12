@@ -9,6 +9,7 @@ export function QuizProvider({ children }) {
   const [quizzes, setQuizzes] = useState([]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   const loadQuizzes = useCallback(async () => {
     const data = await apiRequest("/api/quizzes");
@@ -25,21 +26,28 @@ export function QuizProvider({ children }) {
     setResults(data.results || []);
   }, [currentUser]);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const refresh = useCallback(async ({ background = false } = {}) => {
+    const shouldShowLoader = !background && !hasLoadedOnce;
+    if (shouldShowLoader) {
+      setLoading(true);
+    }
+
     try {
       await loadQuizzes();
       await loadResults();
+      setHasLoadedOnce(true);
     } finally {
-      setLoading(false);
+      if (shouldShowLoader) {
+        setLoading(false);
+      }
     }
-  }, [loadQuizzes, loadResults]);
+  }, [loadQuizzes, loadResults, hasLoadedOnce]);
 
   useEffect(() => {
     if (!authReady) {
       return;
     }
-    refresh().catch(() => {
+    refresh({ background: false }).catch(() => {
       // Ignore initial refresh errors; UI handles empty/error states elsewhere.
     });
   }, [authReady, currentUser?.id, refresh]);
@@ -50,7 +58,7 @@ export function QuizProvider({ children }) {
     }
 
     const sync = () => {
-      refresh().catch(() => {
+      refresh({ background: true }).catch(() => {
         // Ignore background sync errors.
       });
     };
