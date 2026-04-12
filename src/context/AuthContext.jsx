@@ -2,7 +2,9 @@
 import { apiRequest, getStoredToken, setStoredToken } from "../lib/api";
 
 const AuthContext = createContext(null);
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" ? window.location.origin : "");
 
 export function AuthProvider({ children }) {
   const [users, setUsers] = useState([]);

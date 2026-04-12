@@ -170,6 +170,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || "";
   let resolvedFrontend = frontendUrl;
+  let frontendLoginUrl = `${resolvedFrontend}/login`;
 
   if (!clientId || !clientSecret || !redirectUri) {
     return res.redirect(`${frontendLoginUrl}?error=google_config`);
@@ -186,7 +187,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
   } catch {
     nextPath = "/dashboard";
   }
-  const frontendLoginUrl = `${resolvedFrontend}/login`;
+  frontendLoginUrl = `${resolvedFrontend}/login`;
 
   if (!code) {
     return res.redirect(`${frontendLoginUrl}?error=google_code`);
