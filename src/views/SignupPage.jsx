@@ -13,7 +13,6 @@ function SignupPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const hasGoogleClientId = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -120,14 +119,12 @@ function SignupPage() {
           </button>
         </form>
 
-        {hasGoogleClientId ? (
-          <>
-            <div className="auth-divider">ali</div>
-            <button type="button" className="btn secondary btn-full" onClick={startGoogleLogin}>
-              Nadaljuj z Google
-            </button>
-          </>
-        ) : null}
+        <>
+          <div className="auth-divider">ali</div>
+          <button type="button" className="btn secondary btn-full" onClick={startGoogleLogin}>
+            Nadaljuj z Google
+          </button>
+        </>
 
         <p className="muted">
           Že imaš račun? <Link to="/login">Prijava</Link>
