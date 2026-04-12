@@ -1,47 +1,46 @@
-# Smart Quiz App (React + Vite)
+﻿# Smart Quiz App (One Deploy on Vercel)
 
-Aplikacija uporablja React (Vite) frontend in Express API backend z Neon PostgreSQL.
+Projekt je nastavljen za EN deploy na Vercel:
+- frontend (Vite build iz `dist`)
+- backend API (`/api/*` Vercel serverless funkcije)
 
-## Zagon
-
-1. Namesti odvisnosti:
+## Lokalno
 
 ```bash
 npm install
-```
-
-2. Frontend env (`.env.local`):
-
-```env
-VITE_API_URL=http://localhost:4000
-VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-```
-
-3. Backend env (`server/.env`):
-
-```env
-PORT=4000
-DATABASE_URL=postgresql://USER:PASSWORD@HOST.neon.tech/DBNAME?channel_binding=require&sslmode=require
-JWT_SECRET=very_long_random_secret
-ADMIN_EMAIL=admin@example.com
-GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:4000/api/auth/google/callback
-CORS_ORIGIN=http://localhost:5173
-```
-
-4. Zaženi frontend + backend:
-
-```bash
 npm run dev
 ```
 
-## Google OAuth nastavitev
+Lokalni `npm run dev` uporablja Vite + Express (`server/index.js`) za razvoj.
 
-- Authorized JavaScript origins: `http://localhost:5173`
-- Authorized redirect URIs: `http://localhost:4000/api/auth/google/callback`
+## Vercel Deploy (en deploy)
 
-## API endpointi
+Deployaj isti repo na Vercel.
+
+### Vercel Environment Variables
+
+Nastavi v Vercel Project Settings -> Environment Variables:
+
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `ADMIN_EMAIL`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI=https://quiz-app-ten-rouge-47.vercel.app/api/auth/google/callback`
+- `FRONTEND_URL=https://quiz-app-ten-rouge-47.vercel.app`
+- `CORS_ORIGIN=https://quiz-app-ten-rouge-47.vercel.app`
+- `VITE_API_URL=` (prazno)
+
+## Google Cloud Console
+
+OAuth client nastavi:
+
+- Authorized JavaScript origins:
+  - `https://quiz-app-ten-rouge-47.vercel.app`
+- Authorized redirect URIs:
+  - `https://quiz-app-ten-rouge-47.vercel.app/api/auth/google/callback`
+
+## API route-i (Vercel)
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
@@ -49,5 +48,6 @@ npm run dev
 - `GET /api/auth/google/callback`
 - `GET /api/auth/me`
 - `PUT /api/auth/profile`
-- `GET /api/users` (admin)
-- `DELETE /api/users/:id` (admin)
+- `GET /api/users`
+- `DELETE /api/users/:id`
+- `GET /api/health`

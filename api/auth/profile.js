@@ -1,0 +1,59 @@
+﻿import bcrypt from "bcryptjs";
+import { initDb, pool } from "../_lib/db.js";
+import { signToken } from "../_lib/jwt.js";
+import { getAuthUser, json, parseBody, toPublicUser } from "../_lib/http.js";
+
+export default async function handler(req, res) {
+  if (req.method !== "PUT") {
+    return json(res, 405, { message: "Method Not Allowed" });
+  }
+
+  await initDb();
+  const authUser = await getAuthUser(req);
+  if (!authUser) {
+    return json(res, 401, { message: "Invalid or expired token." });
+  }
+
+  const body = parseBody(req);
+  const name = (body.name || "").trim();
+  const email = (body.email || "").trim().toLowerCase();
+  const password = body.password || "";
+
+  if (!name || !email) {
+    return json(res, 400, { message: "Name and email are required." });
+  }
+
+  const conflict = await pool.query(
+    "SELECT id FROM users WHERE email = $1 AND id <> $2 LIMIT 1",
+    [email, authUser.id],
+  );
+
+  if (conflict.rowCount) {
+    return json(res, 409, { message: "Email is already in use." });
+  }
+
+  let passwordHash = null;
+  if (password.trim()) {
+    if (password.trim().length < 6) {
+      return json(res, 400, { message: "Password must contain at least 6 characters." });
+    }
+    passwordHash = await bcrypt.hash(password.trim(), 10);
+  }
+
+  const adminEmail = (process.env.ADMIN_EMAIL || "").toLowerCase();
+  const role = adminEmail && email === adminEmail ? "admin" : authUser.role;
+
+  const updated = await pool.query(
+    `UPDATE users
+     SET name = $1,
+         email = $2,
+         role = $3,
+         password_hash = COALESCE($4, password_hash)
+     WHERE id = $5
+     RETURNING id, name, email, role, provider`,
+    [name, email, role, passwordHash, authUser.id],
+  );
+
+  const user = updated.rows[0];
+  return json(res, 200, { token: signToken(user), user: toPublicUser(user) });
+}
