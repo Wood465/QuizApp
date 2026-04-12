@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const TOKEN_KEY = "smartQuizToken";
 
 export function getStoredToken() {
@@ -24,7 +24,10 @@ export async function apiRequest(path, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const base = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
+  const url = `${base}${path}`;
+
+  const response = await fetch(url, {
     ...options,
     headers,
   });

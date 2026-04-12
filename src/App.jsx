@@ -3,14 +3,14 @@ import AdminRoute from "./components/AdminRoute";
 import AppLayout from "./components/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
-import AdminPage from "./pages/AdminPage";
-import DashboardPage from "./pages/DashboardPage";
-import LandingPage from "./pages/LandingPage";
-import LoginPage from "./pages/LoginPage";
-import ProfilePage from "./pages/ProfilePage";
-import QuizzesPage from "./pages/QuizzesPage";
-import ResultsPage from "./pages/ResultsPage";
-import SignupPage from "./pages/SignupPage";
+import AdminPage from "./views/AdminPage";
+import DashboardPage from "./views/DashboardPage";
+import LandingPage from "./views/LandingPage";
+import LoginPage from "./views/LoginPage";
+import ProfilePage from "./views/ProfilePage";
+import QuizzesPage from "./views/QuizzesPage";
+import ResultsPage from "./views/ResultsPage";
+import SignupPage from "./views/SignupPage";
 
 function PublicOnlyRoute({ children }) {
   const { isAuthenticated, authReady } = useAuth();
@@ -75,3 +75,5 @@ function App() {
 }
 
 export default App;
+
+

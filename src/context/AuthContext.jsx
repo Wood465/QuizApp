@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+﻿import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { apiRequest, getStoredToken, setStoredToken } from "../lib/api";
 
 const AuthContext = createContext(null);
@@ -79,18 +79,25 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const loginWithGoogle = async (credential) => {
-    try {
-      const data = await apiRequest("/api/auth/google", {
-        method: "POST",
-        body: JSON.stringify({ idToken: credential }),
-      });
+  const loginWithGoogle = ({ nextPath = "/dashboard" } = {}) => {
+    const safeNext = nextPath.startsWith("/") ? nextPath : "/dashboard";
+    window.location.href = `/api/auth/google/start?next=${encodeURIComponent(safeNext)}`;
+  };
 
-      setStoredToken(data.token || "");
+  const loginWithToken = async (token) => {
+    if (!token) {
+      return { ok: false, message: "Missing token." };
+    }
+
+    try {
+      setStoredToken(token);
+      const data = await apiRequest("/api/auth/me");
       setCurrentUser(data.user || null);
       return { ok: true };
-    } catch (error) {
-      return { ok: false, message: error.message };
+    } catch {
+      setStoredToken("");
+      setCurrentUser(null);
+      return { ok: false, message: "Google prijava ni uspela." };
     }
   };
 
@@ -141,6 +148,7 @@ export function AuthProvider({ children }) {
       register,
       login,
       loginWithGoogle,
+      loginWithToken,
       logout,
       deleteUser,
       updateProfile,

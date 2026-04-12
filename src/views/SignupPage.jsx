@@ -1,11 +1,11 @@
-﻿import { GoogleLogin } from "@react-oauth/google";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+﻿import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function SignupPage() {
-  const { register, loginWithGoogle, configError } = useAuth();
+  const { register, loginWithGoogle, loginWithToken, configError } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -13,7 +13,38 @@ function SignupPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  const hasGoogleClientId = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get("token");
+    const next = params.get("next") || "/dashboard";
+    const errorCode = params.get("error");
+
+    if (errorCode) {
+      setError("Google prijava ni uspela.");
+      return;
+    }
+
+    if (!token) {
+      return;
+    }
+
+    const applyToken = async () => {
+      setIsLoading(true);
+      const result = await loginWithToken(token);
+      setIsLoading(false);
+
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+
+      navigate(next, { replace: true });
+    };
+
+    applyToken();
+  }, [location.search]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -41,25 +72,8 @@ function SignupPage() {
     navigate("/dashboard", { replace: true });
   };
 
-  const onGoogleSuccess = async (response) => {
-    const credential = response?.credential;
-    if (!credential) {
-      setError("Google prijava ni uspela.");
-      return;
-    }
-
-    setError("");
-    setIsLoading(true);
-
-    const result = await loginWithGoogle(credential);
-    setIsLoading(false);
-
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
-
-    navigate("/dashboard", { replace: true });
+  const startGoogleLogin = () => {
+    loginWithGoogle({ nextPath: "/dashboard" });
   };
 
   return (
@@ -109,13 +123,9 @@ function SignupPage() {
         {hasGoogleClientId ? (
           <>
             <div className="auth-divider">ali</div>
-            <div className="google-auth-wrap">
-              <GoogleLogin
-                onSuccess={onGoogleSuccess}
-                onError={() => setError("Google prijava ni uspela.")}
-                useOneTap={false}
-              />
-            </div>
+            <button type="button" className="btn secondary btn-full" onClick={startGoogleLogin}>
+              Nadaljuj z Google
+            </button>
           </>
         ) : null}
 

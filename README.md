@@ -1,8 +1,8 @@
-# Smart Quiz App
+﻿# Smart Quiz App (Next.js)
 
-Smart Quiz app (React + Vite) z Neon PostgreSQL auth backendom.
+Aplikacija je migrirana na Next.js (App Router) in uporablja Neon PostgreSQL bazo prek Next API route endpointov.
 
-## Hitri zagon
+## Zagon
 
 1. Namesti odvisnosti:
 
@@ -10,40 +10,52 @@ Smart Quiz app (React + Vite) z Neon PostgreSQL auth backendom.
 npm install
 ```
 
-2. Nastavi frontend env (`.env.local`):
+2. Nastavi `.env.local` v root projekta:
 
 ```env
-VITE_API_URL=http://localhost:4000
-VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-```
+NEXT_PUBLIC_API_URL=
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 
-3. Nastavi backend env (`server/.env`):
-
-```env
-PORT=4000
-DATABASE_URL=postgresql://USER:PASSWORD@HOST.neon.tech/DBNAME?sslmode=require
+DATABASE_URL=postgresql://USER:PASSWORD@HOST.neon.tech/DBNAME?channel_binding=require&sslmode=require
 JWT_SECRET=very_long_random_secret
 ADMIN_EMAIL=admin@example.com
 GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-CORS_ORIGIN=http://localhost:5173
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 ```
 
-4. Za�eni client + API skupaj:
+Opomba: `NEXT_PUBLIC_API_URL` pusti prazno za isti origin (priporočeno v Next). Če rabiš ločen API host, nastavi cel URL.
+
+3. Zaženi development:
 
 ```bash
 npm run dev
 ```
 
-## Kaj je implementirano
+4. Production build:
 
-- `register/login` proti Neon PostgreSQL
-- JWT avtentikacija
-- Google login (ID token verifikacija na backendu)
-- profil (posodobitev imena/email/gesla)
-- admin users list + delete user endpoint
+```bash
+npm run build
+npm run start
+```
+
+## Google OAuth nastavitev
+
+- `Authorized JavaScript origins`: `http://localhost:3000`
+- `Authorized redirect URIs`: `http://localhost:3000/api/auth/google/callback`
+
+## API endpointi
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/google/start`
+- `GET /api/auth/google/callback`
+- `GET /api/auth/me`
+- `PUT /api/auth/profile`
+- `GET /api/users` (admin)
+- `DELETE /api/users/:id` (admin)
 
 ## Opombe
 
-- Ob prvem zagonu server sam ustvari tabelo `users`.
-- Admin pravice dobi uporabnik, katerega email je enak `ADMIN_EMAIL`.
-- �e Google login ne rabi�, pusti `VITE_GOOGLE_CLIENT_ID` in `GOOGLE_CLIENT_ID` prazno.
+- Tabela `users` se ustvari samodejno ob prvem requestu.
+- Uporabnik z emailom enakim `ADMIN_EMAIL` dobi vlogo `admin`.

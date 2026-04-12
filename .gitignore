@@ -1,5 +1,6 @@
 node_modules
 dist
 .vite
+.next
 .env.local
 server/.env
