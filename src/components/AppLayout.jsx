@@ -43,6 +43,9 @@ function AppLayout() {
             <NavLink to="/quizzes" onClick={closeMenu}>
               Kvizi
             </NavLink>
+            <NavLink to="/leaderboard" onClick={closeMenu}>
+              Leaderboard
+            </NavLink>
             <NavLink to="/results" onClick={closeMenu}>
               Rezultati
             </NavLink>

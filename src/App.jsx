@@ -8,6 +8,7 @@ import ContactPage from "./views/ContactPage";
 import DashboardPage from "./views/DashboardPage";
 import FeaturesPage from "./views/FeaturesPage";
 import LandingPage from "./views/LandingPage";
+import LeaderboardPage from "./views/LeaderboardPage";
 import LoginPage from "./views/LoginPage";
 import ProfilePage from "./views/ProfilePage";
 import QuizzesPage from "./views/QuizzesPage";
@@ -62,6 +63,7 @@ function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/quizzes" element={<QuizzesPage />} />
         <Route path="/results" element={<ResultsPage />} />
         <Route path="/profile" element={<ProfilePage />} />

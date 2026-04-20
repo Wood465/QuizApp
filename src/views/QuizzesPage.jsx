@@ -1,4 +1,4 @@
-﻿import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuiz } from "../context/QuizContext";
 
 function formatDuration(seconds) {
@@ -113,6 +113,7 @@ function QuizzesPage() {
       percentage: result.entry.percentage,
       items: buildAttemptReview(selectedQuiz, normalizedAnswers),
     });
+
     setError("");
     setSelectedQuizId("");
     setAttemptStartedAt(null);
@@ -148,15 +149,17 @@ function QuizzesPage() {
               <div>
                 <h3>{quiz.title}</h3>
                 <p className="muted">
-                  Tema: {quiz.topic} | Tezavnost: {quiz.difficulty} | Vprasanja: {" "}
+                  Tema: {quiz.topic} | Tezavnost: {quiz.difficulty} | Vprasanja:{" "}
                   {quiz.questions.length}
                 </p>
               </div>
+
               <button type="button" className="btn primary" onClick={() => startQuiz(quiz.id)}>
                 Zacni kviz
               </button>
             </div>
           ))}
+
           {!loading && filteredQuizzes.length === 0 ? (
             <p className="muted">Za izbrano temo trenutno ni kvizov.</p>
           ) : null}

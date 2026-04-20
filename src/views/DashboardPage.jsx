@@ -195,6 +195,9 @@ function DashboardPage() {
             <Link className="btn primary" to="/quizzes">
               Resuj kvize
             </Link>
+            <Link className="btn secondary" to="/leaderboard">
+              Leaderboard
+            </Link>
             <Link className="btn secondary" to="/results">
               Poglej rezultate
             </Link>

@@ -377,6 +377,35 @@ select {
   padding: 12px;
 }
 
+.leaderboard-box {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f8fbfd;
+  padding: 10px 12px;
+}
+
+.leaderboard-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.leaderboard-top10 {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.leaderboard-top10 li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.92rem;
+}
+
 .question-box {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -565,6 +594,10 @@ select {
 @media (max-width: 920px) {
   .hero,
   .page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .leaderboard-grid {
     grid-template-columns: 1fr;
   }
 
