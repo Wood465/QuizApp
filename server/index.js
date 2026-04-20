@@ -44,9 +44,34 @@ function toPublicUser(user) {
     id: user.id,
     name: user.name,
     email: user.email,
+    avatarUrl: user.avatar_url || user.avatarUrl || "",
     role: user.role,
     provider: user.provider,
   };
+}
+
+function normalizeAvatarUrl(value) {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) {
+    return "";
+  }
+
+  if (raw.length > 500) {
+    throw new Error("Avatar URL is too long.");
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error("Avatar URL must be a valid URL.");
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Avatar URL must start with http:// or https://.");
+  }
+
+  return parsed.toString();
 }
 
 function parseCookies(req) {
@@ -109,7 +134,7 @@ async function getAuthUser(req) {
   try {
     const payload = verifyToken(token);
     const result = await pool.query(
-      "SELECT id, name, email, role, provider FROM users WHERE id = $1 LIMIT 1",
+      "SELECT id, name, email, avatar_url, role, provider FROM users WHERE id = $1 LIMIT 1",
       [payload.sub],
     );
     return result.rowCount ? result.rows[0] : null;
@@ -173,7 +198,7 @@ app.post("/api/auth/register", async (req, res) => {
   const created = await pool.query(
     `INSERT INTO users (name, email, password_hash, provider, role)
      VALUES ($1, $2, $3, 'password', $4)
-     RETURNING id, name, email, role, provider`,
+     RETURNING id, name, email, avatar_url, role, provider`,
     [name, email, passwordHash, role],
   );
 
@@ -191,7 +216,7 @@ app.post("/api/auth/login", async (req, res) => {
   }
 
   const result = await pool.query(
-    "SELECT id, name, email, role, provider, password_hash FROM users WHERE email = $1 LIMIT 1",
+    "SELECT id, name, email, avatar_url, role, provider, password_hash FROM users WHERE email = $1 LIMIT 1",
     [email],
   );
 
@@ -291,6 +316,12 @@ app.get("/api/auth/google/callback", async (req, res) => {
 
   const email = (payload?.email || "").toLowerCase();
   const name = payload?.name || email.split("@")[0] || "Uporabnik";
+  const rawGoogleAvatar = typeof payload?.picture === "string" ? payload.picture.trim() : "";
+  const googleAvatarUrl =
+    rawGoogleAvatar &&
+    (rawGoogleAvatar.startsWith("https://") || rawGoogleAvatar.startsWith("http://"))
+      ? rawGoogleAvatar
+      : "";
 
   if (!email) {
     return res.redirect(`${frontendLoginUrl}?error=google_email`);
@@ -300,18 +331,22 @@ app.get("/api/auth/google/callback", async (req, res) => {
   const role = adminEmail && email === adminEmail ? "admin" : "user";
 
   const upserted = await pool.query(
-    `INSERT INTO users (name, email, provider, role)
-     VALUES ($1, $2, 'google', $3)
+    `INSERT INTO users (name, email, provider, role, avatar_url)
+     VALUES ($1, $2, 'google', $3, NULLIF($4, ''))
      ON CONFLICT (email)
      DO UPDATE SET
        name = EXCLUDED.name,
        provider = 'google',
+       avatar_url = CASE
+         WHEN users.avatar_url IS NULL OR users.avatar_url = '' THEN EXCLUDED.avatar_url
+         ELSE users.avatar_url
+       END,
        role = CASE
          WHEN users.role = 'admin' OR EXCLUDED.role = 'admin' THEN 'admin'
          ELSE users.role
        END
-     RETURNING id, name, email, role, provider`,
-    [name, email, role],
+     RETURNING id, name, email, avatar_url, role, provider`,
+    [name, email, role, googleAvatarUrl],
   );
 
   const user = upserted.rows[0];
@@ -337,6 +372,13 @@ app.put("/api/auth/profile", async (req, res) => {
   const name = (req.body.name || "").trim();
   const email = (req.body.email || "").trim().toLowerCase();
   const password = req.body.password || "";
+  let avatarUrl = "";
+
+  try {
+    avatarUrl = normalizeAvatarUrl(req.body.avatarUrl);
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
 
   if (!name || !email) {
     return res.status(400).json({ message: "Name and email are required." });
@@ -367,10 +409,11 @@ app.put("/api/auth/profile", async (req, res) => {
     `UPDATE users
      SET name = $1,
          email = $2,
-         password_hash = COALESCE($3, password_hash)
-     WHERE id = $4
-     RETURNING id, name, email, role, provider`,
-    [name, email, passwordHash, authUser.id],
+         password_hash = COALESCE($3, password_hash),
+         avatar_url = NULLIF($4, '')
+     WHERE id = $5
+     RETURNING id, name, email, avatar_url, role, provider`,
+    [name, email, passwordHash, avatarUrl, authUser.id],
   );
 
   const user = updated.rows[0];
@@ -607,7 +650,9 @@ app.get("/api/users", async (req, res) => {
     return res.status(403).json({ message: "Admin access required." });
   }
 
-  const users = await pool.query("SELECT id, name, email, role, provider FROM users ORDER BY name ASC");
+  const users = await pool.query(
+    "SELECT id, name, email, avatar_url, role, provider FROM users ORDER BY name ASC",
+  );
   return res.json({ users: users.rows.map(toPublicUser) });
 });
 

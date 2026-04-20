@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     const users = await pool.query(
-      "SELECT id, name, email, role, provider FROM users ORDER BY name ASC",
+      "SELECT id, name, email, avatar_url, role, provider FROM users ORDER BY name ASC",
     );
 
     return json(res, 200, { users: users.rows.map(toPublicUser) });

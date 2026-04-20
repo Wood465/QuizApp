@@ -3,8 +3,8 @@ import PublicLayout from "../components/PublicLayout";
 function ContactPage() {
   return (
     <PublicLayout>
-      <section className="page-stack">
-        <article className="card">
+      <section className="page-stack page-stack-centered">
+        <article className="card card-narrow">
           <h1>Kontakt</h1>
           <p className="muted">Če imaš vprašanje ali predlog, nas lahko kontaktiraš.</p>
         </article>

@@ -6,6 +6,7 @@ function ProfilePage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -18,6 +19,7 @@ function ProfilePage() {
 
     setName(currentUser.name || "");
     setEmail(currentUser.email || "");
+    setAvatarUrl(currentUser.avatarUrl || "");
   }, [currentUser]);
 
   if (!currentUser) {
@@ -40,6 +42,7 @@ function ProfilePage() {
     const result = await updateProfile({
       name,
       email,
+      avatarUrl,
       ...(isGoogleUser ? {} : { password }),
     });
     setIsSaving(false);
@@ -54,7 +57,7 @@ function ProfilePage() {
   };
 
   return (
-    <section className="page-stack">
+    <section className="page-stack page-stack-centered">
       <article className="card card-narrow">
         <h1>Moj profil</h1>
         <form className="form-stack" onSubmit={submit}>
@@ -74,6 +77,17 @@ function ProfilePage() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              disabled={isSaving}
+            />
+          </label>
+
+          <label>
+            URL profilne slike (opcijsko)
+            <input
+              type="url"
+              value={avatarUrl}
+              onChange={(event) => setAvatarUrl(event.target.value)}
+              placeholder="https://example.com/slika.jpg"
               disabled={isSaving}
             />
           </label>

@@ -102,11 +102,11 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const updateProfile = async ({ name, email, password }) => {
+  const updateProfile = async ({ name, email, password, avatarUrl }) => {
     try {
       const data = await apiRequest("/api/auth/profile", {
         method: "PUT",
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, avatarUrl }),
       });
 
       setCurrentUser(data.user || null);

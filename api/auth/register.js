@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   const created = await pool.query(
     `INSERT INTO users (name, email, password_hash, provider, role)
      VALUES ($1, $2, $3, 'password', $4)
-     RETURNING id, name, email, role, provider`,
+     RETURNING id, name, email, avatar_url, role, provider`,
     [name, email, passwordHash, role],
   );
 
@@ -43,4 +43,3 @@ export default async function handler(req, res) {
   setAuthCookie(res, token);
   return json(res, 201, { user: toPublicUser(user) });
 }
-

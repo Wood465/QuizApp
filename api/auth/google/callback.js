@@ -58,6 +58,12 @@ export default async function handler(req, res) {
 
   const email = (payload?.email || "").toLowerCase();
   const name = payload?.name || email.split("@")[0] || "Uporabnik";
+  const rawGoogleAvatar = typeof payload?.picture === "string" ? payload.picture.trim() : "";
+  const googleAvatarUrl =
+    rawGoogleAvatar &&
+    (rawGoogleAvatar.startsWith("https://") || rawGoogleAvatar.startsWith("http://"))
+      ? rawGoogleAvatar
+      : "";
 
   if (!email) {
     return res.redirect(`${frontendLoginUrl}?error=google_email`);
@@ -67,18 +73,22 @@ export default async function handler(req, res) {
   const role = adminEmail && email === adminEmail ? "admin" : "user";
 
   const upserted = await pool.query(
-    `INSERT INTO users (name, email, provider, role)
-     VALUES ($1, $2, 'google', $3)
+    `INSERT INTO users (name, email, provider, role, avatar_url)
+     VALUES ($1, $2, 'google', $3, NULLIF($4, ''))
      ON CONFLICT (email)
      DO UPDATE SET
        name = EXCLUDED.name,
        provider = 'google',
+       avatar_url = CASE
+         WHEN users.avatar_url IS NULL OR users.avatar_url = '' THEN EXCLUDED.avatar_url
+         ELSE users.avatar_url
+       END,
        role = CASE
          WHEN users.role = 'admin' OR EXCLUDED.role = 'admin' THEN 'admin'
          ELSE users.role
        END
-     RETURNING id, name, email, role, provider`,
-    [name, email, role],
+     RETURNING id, name, email, avatar_url, role, provider`,
+    [name, email, role, googleAvatarUrl],
   );
 
   const user = upserted.rows[0];

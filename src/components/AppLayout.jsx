@@ -1,13 +1,22 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
   const closeMenu = () => setMenuOpen(false);
+
+  useEffect(() => {
+    setAvatarLoadError(false);
+  }, [currentUser?.avatarUrl]);
+
+  const avatarUrl = (currentUser?.avatarUrl || "").trim();
+  const userInitial = (currentUser?.name || "?").trim().charAt(0).toUpperCase() || "?";
+  const showAvatarImage = Boolean(avatarUrl) && !avatarLoadError;
 
   return (
     <>
@@ -48,7 +57,20 @@ function AppLayout() {
           </nav>
 
           <div className="desktop-auth app-user">
-            <span>{currentUser?.name}</span>
+            <div className="app-user-info">
+              <span className="app-avatar" aria-hidden="true">
+                {showAvatarImage ? (
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    onError={() => setAvatarLoadError(true)}
+                  />
+                ) : (
+                  userInitial
+                )}
+              </span>
+              <span>{currentUser?.name}</span>
+            </div>
             <button
               type="button"
               className="btn secondary"

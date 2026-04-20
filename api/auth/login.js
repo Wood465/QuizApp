@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   }
 
   const result = await pool.query(
-    "SELECT id, name, email, role, provider, password_hash FROM users WHERE email = $1 LIMIT 1",
+    "SELECT id, name, email, avatar_url, role, provider, password_hash FROM users WHERE email = $1 LIMIT 1",
     [email],
   );
 
@@ -40,4 +40,3 @@ export default async function handler(req, res) {
   setAuthCookie(res, token);
   return json(res, 200, { user: toPublicUser(user) });
 }
-

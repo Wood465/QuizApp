@@ -71,6 +71,7 @@ export function toPublicUser(user) {
     id: user.id,
     name: user.name,
     email: user.email,
+    avatarUrl: user.avatar_url || user.avatarUrl || "",
     role: user.role,
     provider: user.provider,
   };
@@ -115,7 +116,7 @@ export async function getAuthUser(req) {
   try {
     const payload = verifyToken(token);
     const result = await pool.query(
-      "SELECT id, name, email, role, provider FROM users WHERE id = $1 LIMIT 1",
+      "SELECT id, name, email, avatar_url, role, provider FROM users WHERE id = $1 LIMIT 1",
       [payload.sub],
     );
     return result.rowCount ? result.rows[0] : null;
