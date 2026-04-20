@@ -42,7 +42,7 @@ function LeaderboardPage() {
 
     try {
       const query = new URLSearchParams({ quizIds: quizIds.join(",") });
-      const data = await apiRequest(`/api/results/leaderboards?${query.toString()}`);
+      const data = await apiRequest(`/api/results?${query.toString()}`);
       const map = {};
 
       for (const leaderboard of data.leaderboards || []) {
