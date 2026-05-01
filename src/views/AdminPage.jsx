@@ -2,25 +2,124 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useQuiz } from "../context/QuizContext";
 
-const initialQuestion = { text: "", options: "", answerIndex: 0 };
+const initialQuestion = {
+  text: "",
+  type: "single",
+  options: "",
+  answerIndex: 0,
+  answerIndices: "",
+  answerText: "",
+};
+
+function parseIndexList(value, maxIndex) {
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  return [...new Set(value
+    .split(",")
+    .map((entry) => Number(entry.trim()))
+    .filter((entry) => Number.isInteger(entry) && entry >= 0 && entry <= maxIndex))]
+    .sort((a, b) => a - b);
+}
 
 function parseQuestions(rawQuestions) {
-  return rawQuestions
-    .filter((item) => item.text.trim() && item.options.trim())
+  let invalidCount = 0;
+
+  const questions = rawQuestions
     .map((item, idx) => {
+      const text = item.text.trim();
+      if (!text) {
+        invalidCount += 1;
+        return null;
+      }
+
+      const type = item.type === "multiple" || item.type === "text" ? item.type : "single";
+
+      if (type === "text") {
+        const answerText = item.answerText.trim();
+        if (!answerText) {
+          invalidCount += 1;
+          return null;
+        }
+
+        return {
+          id: `q-${idx + 1}`,
+          text,
+          type: "text",
+          answerText,
+        };
+      }
+
       const options = item.options
         .split("|")
         .map((entry) => entry.trim())
         .filter(Boolean);
 
+      if (options.length < 2) {
+        invalidCount += 1;
+        return null;
+      }
+
+      if (type === "multiple") {
+        const answerIndices = parseIndexList(item.answerIndices, options.length - 1);
+        if (answerIndices.length === 0) {
+          invalidCount += 1;
+          return null;
+        }
+
+        return {
+          id: `q-${idx + 1}`,
+          text,
+          type: "multiple",
+          options,
+          answerIndices,
+        };
+      }
+
+      const rawIndex = Number(item.answerIndex);
+      const answerIndex = Number.isInteger(rawIndex) ? rawIndex : 0;
+
       return {
         id: `q-${idx + 1}`,
-        text: item.text.trim(),
+        text,
+        type: "single",
         options,
-        answerIndex: Math.min(Math.max(Number(item.answerIndex), 0), options.length - 1),
+        answerIndex: Math.min(Math.max(answerIndex, 0), options.length - 1),
       };
     })
-    .filter((item) => item.options.length >= 2);
+    .filter(Boolean);
+
+  return { questions, invalidCount };
+}
+
+function mapQuestionForForm(item) {
+  const type = item?.type === "multiple" || item?.type === "text" ? item.type : "single";
+  const options = Array.isArray(item?.options) ? item.options.join(" | ") : "";
+  const answerIndex = Number.isInteger(Number(item?.answerIndex)) ? Number(item.answerIndex) : 0;
+  const answerIndices = Array.isArray(item?.answerIndices)
+    ? item.answerIndices.join(", ")
+    : Array.isArray(item?.correctIndices)
+      ? item.correctIndices.join(", ")
+      : Number.isInteger(Number(item?.answerIndex))
+        ? String(Number(item.answerIndex))
+        : "";
+  const answerText = typeof item?.answerText === "string"
+    ? item.answerText
+    : typeof item?.answer === "string"
+      ? item.answer
+      : typeof item?.correctAnswer === "string"
+        ? item.correctAnswer
+        : "";
+
+  return {
+    text: item?.text || "",
+    type,
+    options,
+    answerIndex,
+    answerIndices,
+    answerText,
+  };
 }
 
 function AdminPage() {
@@ -53,13 +152,7 @@ function AdminPage() {
     setTitle(quiz.title);
     setTopic(quiz.topic);
     setDifficulty(quiz.difficulty);
-    setQuestions(
-      quiz.questions.map((item) => ({
-        text: item.text,
-        options: item.options.join(" | "),
-        answerIndex: item.answerIndex,
-      })),
-    );
+    setQuestions(quiz.questions.map(mapQuestionForForm));
     setError("");
     setNotice("");
   };
@@ -82,13 +175,20 @@ function AdminPage() {
     setError("");
     setNotice("");
 
-    const parsedQuestions = parseQuestions(questions);
+    const parsed = parseQuestions(questions);
+    const parsedQuestions = parsed.questions;
     if (!title.trim() || !topic.trim()) {
       setError("Naslov in tema sta obvezna.");
       return;
     }
+    if (parsed.invalidCount > 0) {
+      setError(
+        "Nekatera vprasanja niso veljavna. Pri text dodaj pravilen odgovor, pri multiple pa indekse pravilnih odgovorov.",
+      );
+      return;
+    }
     if (parsedQuestions.length === 0) {
-      setError("Dodaj vsaj eno vprašanje z vsaj dvema možnostma.");
+      setError("Dodaj vsaj eno veljavno vprasanje.");
       return;
     }
 
@@ -103,10 +203,10 @@ function AdminPage() {
     try {
       if (editingId) {
         await updateQuiz(editingId, payload);
-        setNotice("Kviz je bil uspešno posodobljen.");
+        setNotice("Kviz je bil uspesno posodobljen.");
       } else {
         await addQuiz(payload);
-        setNotice("Kviz je bil uspešno dodan.");
+        setNotice("Kviz je bil uspesno dodan.");
       }
       resetForm();
     } catch (apiError) {
@@ -117,7 +217,7 @@ function AdminPage() {
   };
 
   const handleDeleteUser = async (user) => {
-    const confirmed = window.confirm(`Ali želiš izbrisati uporabnika ${user.name}?`);
+    const confirmed = window.confirm(`Ali zelis izbrisati uporabnika ${user.name}?`);
     if (!confirmed) {
       return;
     }
@@ -132,7 +232,7 @@ function AdminPage() {
     }
 
     if (currentUser?.id === user.id) {
-      setUserNotice("Izbrisal si svoj račun. Za nadaljevanje se ponovno prijavi.");
+      setUserNotice("Izbrisal si svoj racun. Za nadaljevanje se ponovno prijavi.");
       return;
     }
 
@@ -166,7 +266,7 @@ function AdminPage() {
           </label>
 
           <label>
-            Težavnost
+            Tezavnost
             <select
               value={difficulty}
               onChange={(event) => setDifficulty(event.target.value)}
@@ -178,11 +278,11 @@ function AdminPage() {
             </select>
           </label>
 
-          <h3>Vprašanja</h3>
+          <h3>Vprasanja</h3>
           {questions.map((question, index) => (
             <div key={index} className="question-admin">
               <label>
-                Besedilo vprašanja
+                Besedilo vprasanja
                 <input
                   value={question.text}
                   onChange={(event) =>
@@ -195,38 +295,98 @@ function AdminPage() {
                   disabled={isSavingQuiz}
                 />
               </label>
+
               <label>
-                Možnosti (ločene z |)
-                <input
-                  value={question.options}
+                Tip vprasanja
+                <select
+                  value={question.type}
                   onChange={(event) =>
                     setQuestions((prev) =>
                       prev.map((entry, i) =>
-                        i === index ? { ...entry, options: event.target.value } : entry,
+                        i === index ? { ...entry, type: event.target.value } : entry,
                       ),
                     )
                   }
                   disabled={isSavingQuiz}
-                />
+                >
+                  <option value="single">Ena pravilna moznost</option>
+                  <option value="multiple">Vec pravilnih moznosti</option>
+                  <option value="text">Vpis odgovora</option>
+                </select>
               </label>
-              <label>
-                Indeks pravilnega odgovora (0,1,2...)
-                <input
-                  type="number"
-                  min="0"
-                  value={question.answerIndex}
-                  onChange={(event) =>
-                    setQuestions((prev) =>
-                      prev.map((entry, i) =>
-                        i === index
-                          ? { ...entry, answerIndex: Number(event.target.value) }
-                          : entry,
-                      ),
-                    )
-                  }
-                  disabled={isSavingQuiz}
-                />
-              </label>
+
+              {question.type === "text" ? (
+                <label>
+                  Pravilen besedilni odgovor
+                  <input
+                    value={question.answerText}
+                    onChange={(event) =>
+                      setQuestions((prev) =>
+                        prev.map((entry, i) =>
+                          i === index ? { ...entry, answerText: event.target.value } : entry,
+                        ),
+                      )
+                    }
+                    disabled={isSavingQuiz}
+                  />
+                </label>
+              ) : (
+                <>
+                  <label>
+                    Moznosti (locene z |)
+                    <input
+                      value={question.options}
+                      onChange={(event) =>
+                        setQuestions((prev) =>
+                          prev.map((entry, i) =>
+                            i === index ? { ...entry, options: event.target.value } : entry,
+                          ),
+                        )
+                      }
+                      disabled={isSavingQuiz}
+                    />
+                  </label>
+
+                  {question.type === "multiple" ? (
+                    <label>
+                      Indeksi pravilnih odgovorov (npr. 0,2)
+                      <input
+                        value={question.answerIndices}
+                        onChange={(event) =>
+                          setQuestions((prev) =>
+                            prev.map((entry, i) =>
+                              i === index
+                                ? { ...entry, answerIndices: event.target.value }
+                                : entry,
+                            ),
+                          )
+                        }
+                        disabled={isSavingQuiz}
+                      />
+                    </label>
+                  ) : (
+                    <label>
+                      Indeks pravilnega odgovora (0,1,2...)
+                      <input
+                        type="number"
+                        min="0"
+                        value={question.answerIndex}
+                        onChange={(event) =>
+                          setQuestions((prev) =>
+                            prev.map((entry, i) =>
+                              i === index
+                                ? { ...entry, answerIndex: Number(event.target.value) }
+                                : entry,
+                            ),
+                          )
+                        }
+                        disabled={isSavingQuiz}
+                      />
+                    </label>
+                  )}
+                </>
+              )}
+
               <div className="hero-actions">
                 <button
                   type="button"
@@ -234,7 +394,7 @@ function AdminPage() {
                   onClick={() => removeQuestionRow(index)}
                   disabled={isSavingQuiz || questions.length <= 1}
                 >
-                  Odstrani vprašanje
+                  Odstrani vprasanje
                 </button>
               </div>
             </div>
@@ -247,7 +407,7 @@ function AdminPage() {
               onClick={addQuestionRow}
               disabled={isSavingQuiz}
             >
-              Dodaj vprašanje
+              Dodaj vprasanje
             </button>
             <button
               type="button"
@@ -277,7 +437,7 @@ function AdminPage() {
                 onClick={resetForm}
                 disabled={isSavingQuiz}
               >
-                Prekliči urejanje
+                Preklici urejanje
               </button>
             ) : null}
           </div>
@@ -285,7 +445,7 @@ function AdminPage() {
       </article>
 
       <article className="card">
-        <h2>Obstoječi kvizi</h2>
+        <h2>Obstojeci kvizi</h2>
         {quizzes.length === 0 ? (
           <p className="muted">Trenutno ni nobenega kviza v bazi.</p>
         ) : (
@@ -295,7 +455,7 @@ function AdminPage() {
                 <div>
                   <h3>{quiz.title}</h3>
                   <p className="muted">
-                    {quiz.topic} | {quiz.difficulty} | {quiz.questions.length} vprašanj
+                    {quiz.topic} | {quiz.difficulty} | {quiz.questions.length} vprasanj
                   </p>
                 </div>
                 <div className="hero-actions">
@@ -308,7 +468,7 @@ function AdminPage() {
                     disabled={deletingQuizId === quiz.id}
                     onClick={async () => {
                       const confirmed = window.confirm(
-                        `Ali želiš izbrisati kviz \"${quiz.title}\"?`,
+                        `Ali zelis izbrisati kviz "${quiz.title}"?`,
                       );
                       if (!confirmed) {
                         return;
@@ -318,7 +478,7 @@ function AdminPage() {
                       setNotice("");
                       try {
                         await deleteQuiz(quiz.id);
-                        setNotice("Kviz je bil uspešno izbrisan.");
+                        setNotice("Kviz je bil uspesno izbrisan.");
                         if (editingId === quiz.id) {
                           resetForm();
                         }
@@ -329,7 +489,7 @@ function AdminPage() {
                       }
                     }}
                   >
-                    {deletingQuizId === quiz.id ? "Brišem..." : "Briši"}
+                    {deletingQuizId === quiz.id ? "Brisem..." : "Brisi"}
                   </button>
                 </div>
               </div>
@@ -358,7 +518,7 @@ function AdminPage() {
                 disabled={deletingUserId === user.id}
                 onClick={() => handleDeleteUser(user)}
               >
-                {deletingUserId === user.id ? "Brišem..." : "Briši uporabnika"}
+                {deletingUserId === user.id ? "Brisem..." : "Brisi uporabnika"}
               </button>
             </div>
           ))}
